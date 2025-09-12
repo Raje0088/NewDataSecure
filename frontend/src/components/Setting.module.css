@@ -1,0 +1,466 @@
+.main {
+  width: 100%;
+  height: 100%;
+  padding: 10px 50px;
+  background-color: #eaeaff;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.content {
+  width: 100%;
+  height: 100%;
+  /* background-color: #bdbdf8; */
+  border-bottom: 2px dotted;
+}
+.roles {
+  width: 100%;
+  height: 250px;
+  padding: 10px 10px 30px 10px;
+  border-bottom: 2px dotted;
+  /* overflow: auto; */
+}
+.subheading {
+  /* padding: 2px 0px; */
+}
+.rolecontent {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  gap: 2px;
+  /* background: red; */
+}
+.role-name-div {
+  width: 20%;
+  height: auto;
+  border: 1px dotted;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.division-product-div {
+  width: 40%;
+  height: auto;
+  display: flex;
+  border: 1px dotted;
+}
+.division-div {
+  width: 50%;
+  height: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.product-div {
+  width: 50%;
+  height: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.product {
+  width: 40%;
+  height: auto;
+  border: 1px dotted;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.table-content {
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  display: flex;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  box-sizing: border-box;
+}
+.table-content-div {
+  width: 33%;
+  height: 100%;
+  margin: 0 10px;
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 10px;
+  box-sizing: border-box;
+  border: 1px solid rgb(112, 112, 112);
+  background-color: #bdbdf8;
+}
+.table-content-div > p {
+  width: 100%;
+  text-align: center;
+  padding: 5px;
+  border-bottom: 1px dotted;
+  font-weight: 600;
+}
+.table-content-body {
+  width: 100%;
+  font-size: 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  scrollbar-width: thin;
+}
+.table-content-body > p {
+  width: 100%;
+  text-align: center;
+  padding: 5px;
+  border-bottom: 1px dotted gray;
+}
+.box {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgb(112, 112, 112);
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 5px;
+  scrollbar-width: thin;
+  background-color: #f3f3fb;
+}
+.box-content {
+  width: 100%;
+  height: auto;
+  padding: 2px 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid;
+  font-size: 12px;
+}
+.iconsdiv {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.icon {
+  font-size: 20px;
+  color: blue;
+  cursor: pointer;
+}
+.box > .box-content:nth-of-type(odd) {
+  background-color: rgb(228, 228, 228);
+}
+.custominput {
+  padding: 2px 5px;
+  width: 80%;
+}
+.custominput2 {
+  padding: 2px 5px;
+  width: 100%;
+}
+.upload {
+  width: 60%;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pincodedata {
+  width: 40%;
+  height: auto;
+  padding: 10px;
+}
+.pincodedata1 {
+  width: 40%;
+  height: auto;
+  padding: 10px;
+  overflow: auto;
+}
+.upload-section {
+  width: 100%;
+  height: auto;
+  /* background: rgb(170, 170, 170); */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.upload-section > p {
+  font-weight: 500;
+}
+.pincode-enter {
+  width: 80%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 10px;
+}
+.importdiv {
+  position: absolute;
+  right: 10px;
+  top: 0px;
+}
+.btndivsection {
+  width: 100%;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.btndiv {
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px;
+}
+.downloaddiv {
+  position: relative;
+  width: auto;
+  padding: 10px;
+}
+.downloadicon {
+  position: absolute;
+  color: blue;
+  font-size: 32px;
+  top: -80%;
+  right: 40%;
+  cursor: pointer;
+}
+.pincode-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.pincode-table {
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+}
+.notfound {
+  width: 100%;
+  height: 100%;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.autobackup-span {
+  width: 80%;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+.autobackubtndiv {
+  width: 80%;
+  height: auto;
+  display: flex;
+  justify-content: end;
+}
+.custombtn {
+  width: 60px;
+  padding: 5px;
+  background-color: blueviolet;
+  color: white;
+}
+
+@media (min-width: 480px) and (max-width: 1080px) {
+  .main {
+    width: 100%;
+    height: 100%;
+  }
+  .roles {
+    width: 100%;
+    height: 100%;
+  }
+  .rolecontent {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    /* background-color: red; */
+  }
+  .role-name-div {
+    width: 50%;
+    height: 250px;
+    overflow: auto;
+  }
+  .division-product-div {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+  }
+  .division-div {
+    width: 50%;
+    height: 250px;
+  }
+  .product-div {
+    width: 50%;
+    height: 250px;
+  }
+  .product {
+    width: 100%;
+    height: 100%;
+    border: 1px dotted;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .table-content {
+    width: 100%;
+    height: 150px;
+  }
+  .table-content-div {
+    width: auto;
+    height: 100%;
+  }
+  .upload {
+    width: 100%;
+    height: auto;
+  }
+  .upload-section {
+    width: 100%;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 10px;
+  }
+  .pincode-enter {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .btndivsection {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .pincodedata {
+    width: 100%;
+    overflow: auto;
+  }
+  .pincodedata1 {
+    width: 100%;
+    overflow: auto;
+  }
+  .pincode-table {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+  }
+  .autobackup-span {
+    width: 100%;
+  }
+  .autobackubtndiv {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    width: 100%;
+    height: 100%;
+  }
+  .roles {
+    width: 100%;
+    height: 100%;
+  }
+  .rolecontent {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    /* background-color: red; */
+  }
+  .role-name-div {
+    width: 100%;
+    height: 250px;
+    overflow: auto;
+  }
+  .division-product-div {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+  }
+  .division-div {
+    width: 50%;
+    height: 250px;
+  }
+  .product-div {
+    width: 50%;
+    height: 250px;
+  }
+  .product {
+    width: 100%;
+    height: 100%;
+    border: 1px dotted;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .table-content {
+    width: 100%;
+    height: 150px;
+  }
+  .table-content-div {
+    width: auto;
+    height: 100%;
+  }
+  .upload {
+    width: 100%;
+    height: auto;
+  }
+  .upload-section {
+    width: 100%;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 10px;
+  }
+  .pincode-enter {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .btndivsection {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .pincodedata {
+    width: 100%;
+    overflow: auto;
+  }
+  .pincodedata1 {
+    width: 100%;
+    overflow: auto;
+  }
+  .pincode-table {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+  }
+  .autobackup-span {
+    width: 100%;
+  }
+  .autobackubtndiv {
+    width: 100%;
+  }
+}

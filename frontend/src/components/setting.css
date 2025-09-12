@@ -1,0 +1,312 @@
+.setting-main {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  background-color: rgb(106, 234, 151);
+}
+
+.setting-wrapper {
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  font-size: 16px;
+  background-color: rgb(106, 234, 151);
+}
+#heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.general-setting {
+  /* background-color: red; */
+  width: 100%;
+  height: 100%;
+}
+.general-setting-content {
+  width: 100%;
+  height: 300px;
+  /* padding: 10px; */
+  background-color: rgb(106, 234, 151);
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.general-setting-div {
+  width: 60%;
+  display: flex;
+  justify-content: space-between;
+  /* background-color: red; */
+}
+.role-name-div {
+  width: 33%;
+  height: auto;
+  /* background-color: blueviolet; */
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+  border-right: 2px dotted black;
+}
+
+.box {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgb(112, 112, 112);
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 5px;
+  scrollbar-width: thin;
+}
+.card-content {
+  display: inline;
+}
+.card-content-bar {
+  width: 100%;
+  margin: 2px;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: black;
+  font-size: 12px;
+}
+.box > .card-content:nth-of-type(odd) .card-content-bar {
+  background-color: rgb(191, 192, 192);
+}
+.box > .card-content-bar:nth-of-type(odd) {
+  background-color: rgb(191, 192, 192);
+}
+
+.table-content-body p:nth-child(odd) {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: rgb(191, 192, 192);
+  text-align: center;
+  /* background-color: #837B73; */
+}
+.table-content-body p:nth-child(even) {
+  width: 100%;
+  text-align: center;
+  /* background-color: #837B73; */
+}
+
+.icons {
+  display: flex;
+  gap: 5px;
+}
+.icon {
+  font-size: 18px;
+  cursor: pointer;
+  color: blue;
+}
+.inputs {
+  border-radius: 5px;
+  padding: 5px;
+  width: 80%;
+  height: 25px;
+  border: 1px solid rgb(112, 112, 112);
+}
+.selects {
+  width: 80%;
+  padding: 2px;
+  border-radius: 5px;
+}
+
+.division-div,
+.product-div {
+  width: 33%;
+  height: auto;
+  /* background-color: blueviolet; */
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.table-main {
+  width: 40%;
+  height: auto;
+  /* background-color: rgb(84, 196, 123); */
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+  border: 2px dotted green;
+}
+
+.table-content {
+  width: 100%;
+  height: 250px;
+  /* background-color: rgb(26, 253, 102); */
+  overflow-x: auto;
+  display: flex;
+  /* flex-direction: column; */
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  box-sizing: border-box;
+  padding: 5px 0;
+}
+.table-content-inner {
+  display: flex;
+}
+.table-content-div {
+  width: 33%;
+  height: 100%;
+  background-color: rgb(106, 234, 151);
+  margin: 0 10px;
+  display: flex;
+  /* padding: 10px; */
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  /* background: gray; */
+  border-radius: 10px;
+  box-sizing: border-box;
+  border: 1px solid rgb(112, 112, 112);
+  padding: 10px;
+}
+.table-content-div h3 {
+  background-color: rgb(47, 161, 87);
+  border-top-right-radius: 10px;
+  border-top-left-radius: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  margin: 0;
+  box-sizing: border-box;
+}
+.table-content-div > p {
+  width: 100%;
+  text-align: center;
+  border-bottom: 2px dotted;
+}
+.table-content-body {
+  margin-top: 10px;
+  width: 100%;
+  font-size: 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  scrollbar-width: thin;
+}
+.area {
+  /* background: red; */
+  width: 100%;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pincode-section {
+  width: 60%;
+  position: relative;
+}
+.importdiv {
+  position: absolute;
+  right: 10px;
+  top: 0px;
+}
+.pincode-table-content {
+  width: 40%;
+  height: 150px;
+  overflow: auto;
+  /* display: flex; */
+  scrollbar-width: thin;
+}
+.pincode-details {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  /* justify-content: space-around; */
+  margin: 10px;
+  /* background: rgb(118, 94, 94); */
+  padding-left: 10px;
+}
+.pincode-details label {
+  display: flex;
+  flex-direction: column;
+}
+.pincode-class {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  /* background-color: red; */
+}
+.pincode-uploadmanual {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px;
+  gap: 20x;
+}
+
+.autobackupdiv {
+  width: 100%;
+  height: auto;
+  padding: 10px;
+  border-top: 2px dotted gray;
+  border-bottom: 2px dotted gray;
+  margin-top: 20px;
+}
+.autobackup-box {
+  width: 100%;
+  height: 150px;
+  padding: 0 10px;
+  display: flex;
+  justify-content: center;
+}
+.inputbackup {
+  padding: 2px 5px;
+  width: 80%;
+}
+.autobackup-span {
+  width: 50%;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  padding: 10px 0;
+  gap: 5px;
+}
+/* optical
+optocare
+
+website
+
+barcode
+==
+restaurant
+aahar store
+
+website
+
+sticker
+==
+hospital
+HMS
+
+website
+
+consumables
+
+hms
+
+  HMS
+  ==
+  School
+  SMS
+
+website
+
+stationary */

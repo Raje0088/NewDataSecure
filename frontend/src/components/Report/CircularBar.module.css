@@ -1,0 +1,39 @@
+
+
+.box {
+  width: 200px;
+  height: 80px;
+  background-color: rgb(137, 133, 133);
+  display: flex;
+  flex-wrap: nowrap;
+  border-radius: 10px;
+  color: wheat;
+}
+.rectangle {
+  width: 160px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  justify-content: center;
+  padding: 10px;
+  /* background-color: rgb(187, 187, 228); */
+}
+.rectangle-content {
+  width: 80%;
+  text-align: left;
+  padding-left: 20px;
+}
+.rectangle-content p{
+  text-wrap: nowrap;
+
+}
+.circle {
+  width: 80px;
+  height: 80px;
+}
+.circularbar {
+  transform: rotate(-90deg);
+  transform-origin: center;
+  transition: stroke-dashoffset 2s ease;
+}

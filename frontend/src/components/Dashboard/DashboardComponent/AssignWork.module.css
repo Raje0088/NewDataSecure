@@ -1,0 +1,45 @@
+.content {
+  width: 100%;
+  height: 250px;
+  overflow: auto;
+    scrollbar-width: thin;
+  margin-bottom: 20px;
+}
+.taskdata {
+  display: flex;
+  gap: 20px;
+  border: 1px solid;
+  padding: 5px;
+  margin: 10px;
+}
+.table {
+  width: 800px;
+  height: 250px;
+  overflow: auto;
+  scrollbar-width: thin;
+  margin: 10px;
+  border: 2px solid;
+}
+
+.btn {
+  display: flex;
+  justify-content: end;
+  margin: 10px;
+  gap: 20px;
+}
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td,
+th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}

@@ -1,0 +1,15 @@
+.tablecontent{
+    overflow: auto;
+    scrollbar-width: thin;
+    border-collapse: collapse;
+}
+
+.tablecontent table tr th{
+    font-size: 14px;
+    border: 1px solid;
+    /* background-color: red; */
+    padding:5px;
+}
+.tablecontent table tr td{
+    font-size: 14px;
+} 

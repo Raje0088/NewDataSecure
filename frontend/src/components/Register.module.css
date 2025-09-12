@@ -1,0 +1,287 @@
+.main {
+  width: 100%;
+  height: 100%;
+  padding: 0 40px;
+  margin: 0;
+  box-sizing: border-box;
+  background-color: #eaeaff;
+}
+.content {
+  width: 100%;
+  background-color: #bdbdf8;
+  height: 70%;
+}
+.history {
+  width: 100%;
+  height: 30%;
+  overflow: auto;
+}
+.custominput {
+  padding: 2px 5px;
+}
+.header {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.searchspan {
+  width: 100%;
+  height: auto;
+  display: flex;
+  overflow: hidden;
+}
+.searchspan p {
+  width: 50%;
+  height: auto;
+  flex: 1;
+  background: rgb(255, 255, 255);
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  padding: 2px 10px;
+  border-right: 1px solid;
+}
+.searchspan input {
+  width: 50%;
+  height: auto;
+  flex: 1;
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+  padding: 2px 10px;
+  border: none;
+  outline: none;
+}
+
+.fielddiv {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 10px 20%;
+  column-gap: 100px;
+  border-bottom: 2px dotted gray;
+}
+.fields {
+  width: 100%;
+}
+.fields input {
+  width: 100%;
+}
+.subheading {
+  width: 100%;
+  height: auto;
+  padding: 10px 20%;
+}
+.permission-div {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 20px;
+  padding: 10px 20%;
+  border-bottom: 2px dotted gray;
+}
+.permission {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+.permission label {
+  text-wrap: nowrap;
+}
+.permission input {
+  width: 20px;
+  height: 20px;
+}
+.user-div {
+  width: 100%;
+  height: 100%;
+  border-bottom: 2px dotted gray;
+}
+.user {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 10px 20%;
+}
+.user h4 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.userpassword {
+  position: relative;
+  width: 100%;
+  height: auto;
+}
+.userpassword input {
+  width: 100%;
+}
+.userpassword div {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+}
+.userpassword div button {
+  border: none;
+  padding: 0 5px;
+  background-color: rgb(93, 93, 93);
+  color: white;
+  width: 40px;
+  height: 100%;
+  cursor: pointer;
+}
+.btndiv {
+  width: 100%;
+  height: 100%;
+  border-bottom: 2px dotted gray;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 10px;
+}
+.btndiv button {
+  background: blue;
+  color: white;
+  min-width: 50px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.form-icon-div {
+  position: relative;
+}
+
+.form-icon {
+  font-size: 18px;
+  color: blue;
+  cursor: pointer;
+}
+
+.popup-wrapper {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.9);
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  background-color: rgba(31, 29, 29, 0.6);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+}
+
+.popup-content-div {
+  position: relative;
+  border-radius: 10px;
+  box-shadow: 0px 0px 10px rgb(184, 181, 181);
+  flex: 1;
+  width: 50%;
+  max-height: 90vh;
+}
+.popup-content {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  flex: 1;
+  padding: 0px 20px;
+  width: 100%;
+  height: 100%;
+}
+
+.popup-wrapper.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+}
+
+.close-icon {
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  color: red;
+  cursor: pointer;
+  font-size: 20px;
+  z-index: 10;
+}
+
+@media (min-width: 480px) and (max-width: 1080px) {
+  .fielddiv {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    padding: 10px;
+    gap: 10px;
+  }
+  .permission-div {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+   padding: 10px;
+  }
+    .subheading {
+    padding: 10px;
+  }
+  .permission {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: start;
+    
+  }
+}
+@media (max-width: 480px) {
+  .main {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+  }
+  .content {
+    width: 100%;
+    height: 70%; /* let content flow naturally */
+    padding: 0;
+  }
+  .fielddiv {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    padding: 10px;
+    gap: 10px;
+  }
+  .permission-div {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding: 10px;
+    gap: 10px;
+  }
+  .subheading {
+    padding: 10px;
+  }
+  .permission {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: start;
+  }
+  .user-div {
+  }
+  .user {
+    padding: 10px;
+    text-wrap: nowrap;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+  }
+}

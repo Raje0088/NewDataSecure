@@ -1,0 +1,72 @@
+.main {
+  width: 850px;
+  background-color: rgb(233, 240, 237);
+  border: 2px solid;
+}
+
+.main span {
+  width: 100%;
+  /* background-color: aqua; */
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 10px;
+  box-sizing: border-box;
+
+}
+
+.btn {
+  display: flex;
+  justify-content: center;
+  margin: 5px;
+}
+
+body {
+  /* overflow-x: hidden; */
+}
+
+.outerScroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background-color: #ddd;
+  padding-bottom: 8px;
+  border: 1px solid #aaa;
+  scrollbar-width: thin;
+  scrollbar-color: black;
+}
+
+.gridWrapper {
+  display: grid;
+  grid-auto-rows: minmax(50px, auto);
+  grid-template-columns: 150px repeat(auto-fit, minmax(120px, 1fr));
+  width: max-content;
+}
+
+.gridItem {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+  min-width: 120px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+}
+
+/* Input styling */
+.gridItem input {
+  width: 100%;
+  padding: 6px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* First column fixed */
+.stickyCol {
+  position: sticky;
+  left: 0;
+  background-color: white;
+  z-index: 2;
+  font-weight: bold;
+}

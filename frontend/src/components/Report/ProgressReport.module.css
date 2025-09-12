@@ -1,0 +1,111 @@
+.main {
+  width: 100%;
+  height: 100vh;
+  background-color: rgb(75, 73, 77);
+  color: white;
+  display: flex;
+  overflow: hidden;
+}
+.sidebar {
+  width: 15%;
+  height: 100%;
+  background-color: rgb(185, 172, 197);
+  background-color:rgb(122, 118, 126);
+}
+.content {
+  width: 85%;
+  height: 100%;
+}
+.piediv {
+  width: 100%;
+  height: 20%;
+  /* background-color: rgb(127, 173, 224); */
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-flow: column;
+  justify-content: flex-start;
+  padding: 20px;
+  /* overflow-x: auto; */
+  scrollbar-width: thin;
+  overflow-y: hidden;
+  column-gap: 20px;
+  white-space: nowrap;
+}
+.graphdiv {
+  /* background-color: rgb(68, 112, 163); */
+  width: 100%;
+  height: 80%;
+  display: flex;
+}
+.graphdiv-left {
+  width: 60%;
+  height: 100%;
+  /* background-color: rgb(231, 82, 206); */
+}
+.graphdiv-right {
+  width: 40%;
+  height: 100%;
+  /* background-color: rgb(156, 81, 144); */
+}
+.graphdiv-left-up {
+  width: 100%;
+  height: 70%;
+  background-color: rgb(255, 255, 255);
+  /* display: flex;
+    align-items: center;
+    justify-content: center; */
+}
+.graphdiv-left-down {
+  width: 100%;
+  height: 30%;
+  /* background-color: rgb(80, 148, 74); */
+}
+.graphdiv-right-up {
+  width: 100%;
+  height: 70%;
+  /* background-color: rgb(165, 211, 58); */
+}
+.graphdiv-right-down {
+  width: 100%;
+  height: 30%;
+  /* background-color: rgb(26, 177, 12); */
+  border: 2px solid white;
+}
+.graphdiv-leadbox {
+  width: 100%;
+  height: auto;
+  /* background-color: rgb(255, 255, 255); */
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  border-bottom: 2px solid white;
+}
+.graphdiv-leadbox > h2 {
+  font-size: 18px;
+  padding: 2px;
+}
+.overall {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 10px;
+}
+.admintask {
+
+    width: 100%;
+    height: auto;
+    /* background-color: rgb(255, 255, 255); */
+    padding:  2px 10px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    border-bottom: 1px solid white;
+  
+}

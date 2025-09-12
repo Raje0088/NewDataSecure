@@ -1,0 +1,621 @@
+/* FILTER RAW DATA */
+/* .main {
+  width: 100vw;
+  height: 100vh;
+}
+.filters {
+  width: 100%;
+  height: auto;
+  background-color: rgba(162, 157, 150, 0.4);
+  padding: 10px 20px;
+  position:relative;
+
+}
+
+.filterfield {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  row-gap: 10px;
+}
+.filterfield span {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.filterfield input {
+  width: 90%;
+  padding: 2px;
+}
+.filterfield-input {
+  width: 150px;
+  padding: 2px;
+}
+.filterfield select {
+  padding: 2px;
+  width: 90%;
+}
+.headers {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.headers h2 {
+  cursor: pointer;
+}
+.headers h2:hover {
+  cursor: pointer;
+  color: orange;
+}
+.leftslider {
+  width: 20%;
+  height: 100%;
+  position: absolute;
+  background-color: rgba(241, 223, 252, 0.678);
+}
+.close {
+  background-color: rgba(182, 181, 183, 0.678);
+  padding: 10px;
+  color: white;
+  text-align: end;
+}
+.minorfilters {
+  width: 100%;
+  height: auto;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+
+}
+.slideIn{
+  animation:slide-in 0.4s forwards;
+}
+.slideOut{
+  display: none;
+  animation:slide-out 0.4s forwards;
+}
+
+@keyframes slide-in{
+  from{
+    top:-10px;
+  }
+  to{
+    top:0px;
+  }
+}
+@keyframes slide-out{
+  from{
+    top:0px;
+  }
+  to{
+    top:-10px;
+  }
+}
+.minorfilters span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.checkbox-input {
+  width: 22px;
+  height: 22px;
+}
+.btn {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  position: fixed;
+  bottom: 0px;
+  z-index: 999;
+  background-color: hsl(60, 6%, 51%);
+  padding: 5px;
+}
+
+.btn button {
+  min-width: 50px;
+  width: auto;
+  border-radius: 0px;
+  color: white;
+  background-color: blue;
+  padding: 3px;
+}
+.btn button:hover {
+  background-color: rgba(0, 0, 255, 0.773);
+}
+.tablediv {
+  padding: 0 40px;
+  width: 100%;
+  height: auto;
+  background-color: hsl(0, 0%, 100%);
+}
+.tablediv-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tablediv-subheader {
+  display: flex;
+  gap: 20px;
+  padding: 10px;
+  justify-content: space-between;
+}
+.tablediv-header h2 {
+  font-size: 32px;
+}
+.tables {
+  width: 100%;
+  height: auto; 
+  max-height: 400px;
+  margin: 20px 0;
+  overflow: auto;
+}
+
+thead th {
+  position: sticky;
+  top: 0px;
+  background-color: white;
+  z-index: 1;
+}
+#selectAll {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.pagebtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pagebtn button {
+  border-radius: 0px;
+  color: white;
+  background-color: rgb(94, 97, 94);
+  padding: 5px;
+}
+.checkbox-input-table {
+  width: 15px;
+  height: 15px;
+}
+.custombtn {
+  color: white;
+  background-color: red;
+
+  width: auto;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+}
+.btndiv {
+  width: 100%;
+  display: flex;
+  justify-content: end;
+  padding:10px  20px;
+}
+.custom-buttondiv {
+  width: 100%;
+  display: flex;
+  justify-content: end;
+  gap: 20px;
+}
+.fetchrawdatadiv {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+}
+.duplicaterecorddiv {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.colorindicator {
+  width: 100%;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+.colorindicator > p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.colorindicator > p > span {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid;
+}
+
+.tableheader {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.tableheader h2 {
+  font-size: 22px;
+  color:red;
+}
+.threedbcol {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: 20px;
+  margin: 20px 0;
+  height: 300px;
+}
+.tablethreedb {
+  width: 100%;
+  overflow: auto;
+  padding: 5px;
+  border: 2px solid;
+}
+.newtable {
+  width: 100%;
+  margin: 40px 0px;
+  overflow: auto;
+} */
+
+.main {
+  width: 100%;
+  height: 100%;
+}
+.content {
+  background-color: #bdbdf8;
+}
+.headers {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2px;
+}
+
+.filters {
+  padding: 5px 50px;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  /* grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); */
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+.fields {
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+}
+.fields label {
+  font-size: 16px;
+  font-weight: 500;
+  text-wrap: nowrap;
+}
+.fields input {
+  width: auto;
+  height: auto;
+  padding: 2px 5px;
+}
+.fields select {
+  width: auto;
+  height: auto;
+  padding: 2px 5px;
+}
+.minorfields {
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.minorfields label {
+  font-size: 16px;
+  font-weight: 500;
+}
+.checkbox-input {
+  width: 50%;
+  height: 50%;
+}
+
+.btn {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  position: fixed;
+  bottom: 0px;
+  z-index: 999;
+  background-color: hsla(253, 100%, 50%, 0.2);
+  padding: 5px;
+}
+
+.btn button {
+  min-width: 50px;
+  width: auto;
+  border-radius: 0px;
+  color: white;
+  background-color: blue;
+  padding: 3px;
+}
+.btn button:hover {
+  background-color: rgba(0, 0, 255, 0.773);
+}
+
+.content-body {
+  background-color: #eaeaff;
+  width: 100%;
+  height: 100%;
+}
+.tablediv {
+  width: 100%;
+  height: auto;
+  padding: 10px 50px;
+  padding-bottom: 40px;
+}
+.table-heading {
+  width: 100%;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.table-subheading {
+  width: 100%;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* padding: 10px; */
+}
+.pagebtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pagebtn button {
+  width: auto;
+  height: auto;
+  border-radius: 0px;
+  color: white;
+  background-color: rgb(6, 73, 128);
+  padding: 5px 10px;
+}
+.pagebtn button:hover {
+  color: black;
+  background-color: rgb(135, 198, 250);
+}
+.table-content {
+  width: 100%;
+  height: 350px;
+  overflow: auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th,
+td {
+  border: 1px solid;
+}
+th {
+  position: sticky;
+  top: 0;
+  background: white;
+}
+tr:nth-child(odd) {
+  background-color: white;
+}
+
+.checkbox-input-table {
+  width: 15px;
+  height: 15px;
+}
+.closediv {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  padding: 10px;
+  gap: 20px;
+}
+.custombtn {
+  width: auto;
+  border-radius: 0px;
+  background-color: red;
+  color: white;
+}
+
+.newtable {
+  width: 100%;
+  overflow: auto;
+}
+.dupTables {
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+  margin: 20px 0;
+  overflow: auto;
+}
+.threedbcol {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: 20px;
+  margin: 20px 0px;
+  height: 300px;
+}
+.tablethreedb {
+  width: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 5px;
+  border: 2px solid;
+}
+.tablediv-header {
+  width: 100%;
+  height: 90%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.norecord {
+  width: 100%;
+  height: 100%;
+  text-align: center;
+}
+.norecord h1 {
+  font-size: 36px;
+}
+
+.menu {
+  display: none;
+}
+#moreFilter:hover {
+  color: rgb(120, 121, 121);
+  cursor:pointer;
+}
+.excelclosebtn{
+  width:100%;
+  display:flex;
+  align-items: center;
+  justify-content: end;
+  padding:2px;
+}
+.colorindicator {
+  width: 100%;
+  display: flex;
+  gap: 20px;
+  padding-bottom: 20px;;
+}
+.colorindicator > p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-wrap: nowrap;
+}
+.colorindicator > p > span {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid;
+}
+@media screen and (max-width: 480px) {
+  .filters {
+    padding: 10px;
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 90%;
+    height: 80%;
+    transition: right 0.3s ease-in-out;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    background-color: #bdbdf8;
+    overflow: auto;
+    z-index: 998;
+  }
+  .filters.open {
+    right: 0;
+  }
+  .menu {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: end;
+  }
+  .menuicon {
+    font-size: 36px;
+    cursor: pointer;
+    position: fixed;
+    right: 0;
+    top: 0;
+    z-index: 999;
+  }
+  .fields {
+    padding: 0px;
+    gap: 0px;
+    margin: 0;
+    /* background-color: red; */
+    flex: 0 0 auto;
+  }
+  .btn {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+  .btn button {
+    /* width:fit-content; */
+    padding: 0 5px;
+    /* margin:auto; */
+  }
+
+  .table-subheading {
+    width: 100%;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .table-subheading h3 {
+    font-size: 18px;
+    font-weight: 600;
+    width: 100%;
+    text-wrap: wrap;
+  }
+  .pagebtn {
+    width: 80%;
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    flex-wrap: nowrap;
+    gap: 5px;
+  }
+  .pagebtn span {
+    text-wrap: nowrap;
+  }
+  .pagebtn button {
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 2px;
+  }
+  .table-content {
+    width: 100%;
+    height: 60vh;
+    overflow: auto;
+  }
+  .threedbcol {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .tablediv-header {
+    width: 100%;
+    height: auto;
+  }
+  .wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap:2px;
+  }
+  .wrapper h2 {
+    text-wrap: nowrap;
+  }
+}
