@@ -103,7 +103,39 @@ app.use((req, res) => {
   res.sendFile(path.join(paths.dist, "index.html"));
 });
 
+const { rawDataModel } = require("./models/rawDataModel")
+const { clientModel } = require("./models/clientModel")
+const { clientSubscriptionModel } = require("./models/clientSubscriptionModel")
 
+
+const a = async () => {
+  const rs = await clientSubscriptionModel.updateMany({
+
+  },
+    {
+      $set: {
+        database_status_db: "User",
+      }
+    },)
+  // for (const r of rs) {
+  //   await rawDataModel.findOneAndUpdate(
+  // {
+  //   client_id: r.client_id,
+  // },
+  // {
+  //   $set: {
+  //     database_status_db: "Raw",
+  //   }
+  // },
+  //     {
+  //       new: true
+  //     }
+  //   )
+  // }
+  console.log("done=========================================")
+}
+
+// a() 
 
 function getActiveLANIP() {
   const interfaces = os.networkInterfaces();
@@ -138,7 +170,7 @@ function getActiveLANIP() {
 const localIP = getActiveLANIP();
 
 server.listen(3000, '0.0.0.0', function () {
-  console.log("server running on port 3000")
+  console.log("server running on port 3000")   
   // console.log(`Server LAN IP: http://${localIP}:3000`);
-  console.log(`Access from LAN: http://192.168.1.100:3000`);
+  console.log(`Access from LAN: http://192.168.1.108:3000`);
 }) 

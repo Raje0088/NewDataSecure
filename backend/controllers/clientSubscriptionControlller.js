@@ -1,5 +1,7 @@
+const { clientModel } = require("../models/clientModel.js")
 const { clientSubscriptionModel } = require("../models/clientSubscriptionModel")
 const { rawDataModel } = require("../models/rawDataModel.js")
+const {getNextGobalCounterSequence} = require("../utils/getNextSequence.js")
 
 const lastUpdatedTracker = async (clientId) => {
     try {
@@ -9,7 +11,7 @@ const lastUpdatedTracker = async (clientId) => {
             },
             {
                 $set: {
-                    database_status_db: "user_db",
+                    database_status_db: "User",
                 }
             },
             {
@@ -26,7 +28,7 @@ const lastUpdatedTracker = async (clientId) => {
 
 const createSubscripbeUser = async (req, res) => {
     try {
-        console.log("req body", req.body)
+        console.log("req body ======= create User", req.body)
         const { clientSerialNo, clientId, userId, bussinessNames, clientName,
             numbers, emails, website,
             addresses, pincode, district,
@@ -107,13 +109,14 @@ const createSubscripbeUser = async (req, res) => {
             time_db: followUpTime,
             date_db: new Date().toLocaleDateString('en-GB'),
             action_db: action,
-            database_status_db: "user_db",
+            database_status_db: "User",
             tracking_db: tracker,
             label_db: label,
             amountDetails_db: amountDetails,
             amountHistory_db: amountHistory,
         })
         lastUpdatedTracker(clientId)
+        getNextGobalCounterSequence("rawSerialNumber")
         console.log("User Details save Successfully", result)
         res.status(201).json({ message: "User Details save Successfully", result })
     } catch (err) {
@@ -124,7 +127,7 @@ const createSubscripbeUser = async (req, res) => {
 
 const updateUserScription = async (req, res) => {
     try {
-        const clientSubscriptionId = req.params.id;
+        const clientId = req.params.id;
         const { clientSerialNo, userId, bussinessNames, clientName,
             numbers, emails, website,
             addresses, pincode, district,
@@ -140,8 +143,8 @@ const updateUserScription = async (req, res) => {
         if (country === "") {
             country = "INDIA"
         }
-        console.log("====>", product)
-        const clientId = clientSubscriptionId.replace("U", "C")
+        console.log("====>", clientId)
+        const clientSubscriptionId = clientId.replace("C", "U")
 
         const oldUser = await clientSubscriptionModel.findOne({ client_subscription_id: clientSubscriptionId })
         if (!oldUser) {
@@ -220,7 +223,7 @@ const updateUserScription = async (req, res) => {
                     time_db: followUpTime,
                     date_db: new Date().toLocaleDateString('en-GB'),
                     action_db: action,
-                    database_status_db: "user_db",
+                    database_status_db: "User",
                     label_db: label,
                     tracking_db: updatedTracker,
                     amountDetails_db: amountDetails,
@@ -229,7 +232,20 @@ const updateUserScription = async (req, res) => {
             },
             { new: true }
         )
-         lastUpdatedTracker(clientId)
+        await clientModel.findOneAndUpdate(
+            {
+                client_id: clientId,
+            },
+            {
+                $set: {
+                    isActive_db: false,
+                }
+            },
+            {
+                new: true
+            }
+        )
+        lastUpdatedTracker(clientId)
         console.log("User Updated Successfully", result)
         res.status(200).json({ message: "User Updated Successfully", result })
     } catch (err) {
@@ -241,7 +257,7 @@ const updateUserScription = async (req, res) => {
 const searchUserSubsciption = async (req, res) => {
     try {
         const clientSubscriptionId = req.params.id;
-        const result = await clientSubscriptionModel.findOne({ client_subscription_id: clientSubscriptionId })
+        const result = await clientSubscriptionModel.findOne({ client_id: clientSubscriptionId })
         console.log("user found ", result)
         res.status(200).json({ message: "user found", result })
     } catch (err) {
@@ -277,8 +293,8 @@ const getAllUserSubsriptionIds = async (req, res) => {
 //FILTER ALL USER DB
 const filterClientSubscriptionData = async (req, res) => {
     try {
-        const { clientName, opticalName, address, mobile, email, district, state, country, hot,
-            followUp, demo, installation, product, defaulter, recovery, lost, dateFrom, dateTo, clientType, } = req.query;
+        const {clientId, clientName, opticalName, address, mobile, email, district, state, country, hot,
+            followUp, demo, installation, product,pincode, defaulter, recovery, lost, dateFrom, dateTo, clientType, } = req.body;
         const { page = 1 } = req.query;
         const limit = 500;
         const skip = (page - 1) * limit;
@@ -286,8 +302,9 @@ const filterClientSubscriptionData = async (req, res) => {
 
         const filters = {}
         const orConditions = [];
-
+            if(clientId) filters.client_id = clientId
         if (clientName) filters.client_name_db = { $regex: clientName, $options: "i" }
+         if (pincode) filters.pincode_db = {$in:pincode}
         if (opticalName) {
             orConditions.push(
                 { optical_name1_db: { $regex: opticalName, $options: "i" } },
@@ -334,7 +351,7 @@ const filterClientSubscriptionData = async (req, res) => {
         if (recovery) filters["tracking_db.recovery_db.completed"] = recovery
         if (lost) filters["tracking_db.lost_db.completed"] = lost
         if (dateFrom && dateTo) filters.date_db = { $gte: dateFrom, $lte: dateTo }
-
+         filters.isActive_db = true;
 
         const result = await clientSubscriptionModel.find(filters).sort({ client_id: 1 }).skip(skip).limit(limit)
         const totalCount = await clientSubscriptionModel.countDocuments(filters)
@@ -355,4 +372,20 @@ const CheckUserIdforExcelSheet = async (req, res) => {
         res.status(500).json({ message: "internal error", err: err.message })
     }
 }
-module.exports = { createSubscripbeUser, CheckUserIdforExcelSheet, filterClientSubscriptionData, getAllUserSubsriptionIds, updateUserScription, searchUserSubsciption, CheckUserSubsciptionToRedirect }  
+const deactivateUserData = async (req, res) => {
+    try {
+        const clientId = req.params.id;
+        const result = await clientSubscriptionModel.findOneAndUpdate(
+            { client_id: clientId, isActive_db: true },
+            { $set: { isActive_db: false } },
+            {new:true},
+        )
+
+        res.status(200).json({ message: `${clientId} deactivated successfully`, result })
+    } catch (err) {
+        res.status(500).json({ message: "Error during deactivation", err: err.message });
+        console.log("Error during deactivation", err)
+    }
+}
+
+module.exports = { createSubscripbeUser, CheckUserIdforExcelSheet, filterClientSubscriptionData, getAllUserSubsriptionIds, updateUserScription, searchUserSubsciption, CheckUserSubsciptionToRedirect,deactivateUserData }  

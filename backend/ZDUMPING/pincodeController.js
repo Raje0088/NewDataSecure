@@ -1,13 +1,20 @@
 const xlsx = require("xlsx");
-// const fs = require("fs")
-const fs = require("fs/promises");
+const fs = require("fs")
+// const fs = require("fs/promises");
 const path = require("path");
+const { promisify } = require("util");   // ✅ add this
+const readFileAsync = promisify(fs.readFile); // ✅ convert to promise
 const { pinCodeModel } = require("../models/dumpIndiaData");
 
 const uploadPincodeExcel = async (req, res) => {
   try {
     const filename = req.params.filename;
     const filePath = path.join(__dirname, "../ZDUMPING/files", filename);
+    console.log("filename", filename)
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
 
     if (!fs.existsSync(filePath)) {
       res.write(`event: error\ndata: ${JSON.stringify({ message: "File not found" })}\n\n`);
@@ -18,15 +25,12 @@ const uploadPincodeExcel = async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    res.flushHeaders();
+    console.log("hello pincode")
+
     const total = data.length
     let count = 0;
     const BATCH_SIZE = 1000;
     let formatted = [];
-    console.log("hello pincode")
     for (const row of data) {
       count++;
 
@@ -72,7 +76,7 @@ const autoAploadPincodeJsonData = async () => {
 
     const filePath = path.join(__dirname, "files", "pincodeFile.json")
     let formatted = []
-    const data = await fs.readFile(filePath, "utf-8");
+    const data = await readFileAsync(filePath, "utf-8");
     const jsonData = JSON.parse(data);
     formatted = jsonData.map((row) => ({
       state_db: row.state_db?.toUpperCase() || "",
@@ -89,7 +93,6 @@ const autoAploadPincodeJsonData = async () => {
     console.log("internal error", err)
   }
 }
-
 
 
 

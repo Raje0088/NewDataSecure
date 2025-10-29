@@ -8,10 +8,13 @@ import styles from "./Setting.module.css";
 import { CiEdit } from "react-icons/ci";
 import { FaDownload } from "react-icons/fa";
 import { MdDeleteOutline } from "react-icons/md";
+import { FaExchangeAlt } from "react-icons/fa";
+import { IoClose } from "react-icons/io5";
 import axios from "axios";
 import { base_url } from "../config/config";
 import { AuthContext } from "../context-api/AuthContext";
 import { useContext } from "react";
+import placeEdit from "../assets/placeEdit.png";
 
 const Setting = () => {
   const { userLoginId } = useContext(AuthContext);
@@ -28,6 +31,7 @@ const Setting = () => {
   const [divisionToAssignProduct, setDivisionToAssignProduct] = useState({});
   const [trigger, setTrigger] = useState(false);
   const [isSearch, setIsSearch] = useState(false);
+  const [openUpdateArea, setOpenUpdateArea] = useState(false);
   const [areaSection, setAreaSection] = useState({
     country: "",
     state: "",
@@ -38,7 +42,7 @@ const Setting = () => {
   });
   const [newlyAddedPincode, setNewlyAddedPincode] = useState([]);
   const [selectUpdatingPincode, setSelectUpdatingPincode] = useState(null);
-  const [file, setFile] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [msg, setMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -54,6 +58,13 @@ const Setting = () => {
   const [autoEmailPassword, setAutoEmailPassword] = useState("");
   const [autoEmailIndex, setAutoEmailIndex] = useState(null);
   const [fetchBackupEmail, setFetchBackupEmail] = useState([]);
+  const [showArealist, setShowArealist] = useState([]);
+  const [searchAreaField, setSearchAreaField] = useState(null);
+  const [searchAreaName, setSearchAreaName] = useState(null);
+  const [selectedAreaOption, setSelectedAreaOption] = useState({
+    prevName: "",
+    changeName: "",
+  });
 
   useEffect(() => {
     const fetchRoleName = async () => {
@@ -101,6 +112,21 @@ const Setting = () => {
 
     fetchAssignProductsByDivision();
   }, [listDivision]);
+
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const result = await axios.get(`${base_url}/pincode/area-list`, {
+          params: { name: searchAreaField, search: searchAreaName },
+        });
+        console.log("area", result.data);
+        setShowArealist(result.data.result);
+      } catch (err) {
+        console.log("internal error", err);
+      }
+    };
+    fetch();
+  }, [searchAreaField, searchAreaName]);
 
   const getAssignProductData = async (e, divisionId) => {
     e.preventDefault();
@@ -366,7 +392,7 @@ const Setting = () => {
           );
         }
         if (isSearch) {
-          console.log("search", filter);
+          console.log("search=======", filter);
           setNewlyAddedPincode(filter);
         } else {
           setNewlyAddedPincode(result.data.result);
@@ -423,6 +449,14 @@ const Setting = () => {
   ]);
 
   async function UpdatePincode() {
+    if (
+      !areaSection.pincode ||
+      !areaSection.country ||
+      !areaSection.district ||
+      !areaSection.state
+    )
+      return alert("Country, State, District, Pincode Fields cannot be empty");
+    setIsSearch(false);
     try {
       const result = await axios.put(`${base_url}/pincode/update-pincode`, {
         searchPincode: selectUpdatingPincode,
@@ -522,15 +556,15 @@ const Setting = () => {
   };
 
   const handleAutoBackUpEmail = async () => {
-    if(autoShotEmail && autoShotEmail.length > 0 && !autoEmailPassword){
+    if (autoShotEmail && autoShotEmail.length > 0 && !autoEmailPassword) {
       return alert("Email password must required");
     }
-    if(autoShotEmail && autoShotEmail.length > 0 ){
+    if (autoShotEmail && autoShotEmail.length > 0) {
       setAutoEmail("");
     }
-    if(autoEmail && autoEmail.length > 0 ){
-       setAutoShotEmail("");
-       setAutoEmailPassword("")
+    if (autoEmail && autoEmail.length > 0) {
+      setAutoShotEmail("");
+      setAutoEmailPassword("");
     }
     try {
       if (autoEmailIndex) {
@@ -538,7 +572,7 @@ const Setting = () => {
           `${base_url}/backup/update-backup-emails/${autoEmailIndex}`,
           {
             senderEmail: autoShotEmail,
-            password:autoEmailPassword,
+            password: autoEmailPassword,
             email: autoEmail,
             userId: "SA",
           },
@@ -554,7 +588,7 @@ const Setting = () => {
           `${base_url}/backup/backup-emails`,
           {
             senderEmail: autoShotEmail,
-            password:autoEmailPassword,
+            password: autoEmailPassword,
             email: autoEmail,
             userId: "SA",
           },
@@ -570,7 +604,7 @@ const Setting = () => {
       fetchBackup();
       setAutoEmail("");
       setAutoShotEmail("");
-      setAutoEmailPassword("")
+      setAutoEmailPassword("");
     } catch (err) {
       console.log("internal error", err);
       alert(
@@ -600,6 +634,33 @@ const Setting = () => {
   useEffect(() => {
     fetchBackup();
   }, []);
+
+  const handleChangeStateDistrictName = async () => {
+    if (
+      !searchAreaField ||
+      !selectedAreaOption.prevName ||
+      !selectedAreaOption.changeName
+    )
+      return alert("Fields cannot be empty");
+    try {
+      const result = await axios.put(`${base_url}/pincode/update-area-name`, {
+        name: searchAreaField,
+        prevName: selectedAreaOption.prevName,
+        changeName: selectedAreaOption.changeName,
+      });
+      alert(result.data.message);
+    } catch (err) {
+      console.log("internal error", err);
+    }
+  };
+  const handleResetStateDistrictName = () => {
+    // setSearchAreaField(null)
+    setSearchAreaName("");
+    setSelectedAreaOption({
+      prevName: "",
+      changeName: "",
+    });
+  };
   return (
     <>
       <div className={styles.main}>
@@ -778,7 +839,140 @@ const Setting = () => {
         </div>
         <div className={styles.roles}>
           <div className={styles.subheading}>
-            <h4>- Pincode</h4>
+            <h4 style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              - Pincode{" "}
+              <img
+                src={placeEdit}
+                onClick={() => {
+                  setOpenUpdateArea(true);
+                }}
+                style={{ width: "25px", height: "25px",cursor:"pointer" }}
+                alt=""
+              />
+              {/* <CiEdit
+                className={styles.icon}
+                onClick={() => {
+                  setOpenUpdateArea(true);
+                }}
+              /> */}
+            </h4>
+            {openUpdateArea && (
+              <div className={styles.popup}>
+                <div className={styles.popbody}>
+                  <span
+                    className={styles["align-end"]}
+                    onClick={() => {
+                      setOpenUpdateArea(false);
+                    }}
+                  >
+                    <IoClose className={styles.icon} style={{ color: "red" }} />
+                  </span>
+                  <p
+                    style={{
+                      fontWeight: "600",
+                      fontSize: "14px",
+                      paddingLeft: "15px",
+                    }}
+                  >
+                    Please select option to make changes
+                  </p>
+                  <div className={styles.changediv}>
+                    <span>
+                      <input
+                        type="radio"
+                        id="state"
+                        name="change-area"
+                        onChange={() => {
+                          setSearchAreaField("state");
+                        }}
+                      />
+                      <label htmlFor="state">State</label>
+                    </span>
+                    <span>
+                      <input
+                        type="radio"
+                        id="dist"
+                        name="change-area"
+                        onChange={() => {
+                          setSearchAreaField("district");
+                        }}
+                      />
+                      <label htmlFor="dist">District</label>
+                    </span>
+                  </div>
+                  <div className={styles.changediv}>
+                    <label htmlFor="">Enter name to search</label>
+                    <input
+                      type="text"
+                      placeholder="Enter Name"
+                      value={searchAreaName}
+                      onChange={(e) => {
+                        setSearchAreaName(e.target.value.trim().toUpperCase());
+                      }}
+                    />
+                  </div>
+                  <div className={styles.changediv}>
+                    <span className={styles.updatenamespan}>
+                      <label htmlFor="">Select Name</label>
+                      <select
+                        name=""
+                        id=""
+                        value={selectedAreaOption.prevName}
+                        className={styles.customselect}
+                        onChange={(e) => {
+                          setSelectedAreaOption((prev) => ({
+                            ...prev,
+                            prevName: e.target.value,
+                          }));
+                        }}
+                      >
+                        <option value="">-- Select --</option>
+                        {(showArealist || []).map((item, idx) => (
+                          <option key={idx} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+                    </span>
+                    <FaExchangeAlt
+                      className={` ${styles.icon} ${styles.exchangeicon} `}
+                    />
+                    <span className={styles.updatenamespan}>
+                      <label htmlFor="">Change Name To</label>
+                      <input
+                        type="text"
+                        value={selectedAreaOption.changeName}
+                        className={styles.custominput2}
+                        onChange={(e) => {
+                          setSelectedAreaOption((prev) => ({
+                            ...prev,
+                            changeName: e.target.value.trim().toUpperCase(),
+                          }));
+                        }}
+                      />
+                    </span>
+                  </div>
+                  <div className={styles["align-end"]}>
+                    <button
+                      className={styles.custombtn}
+                      onClick={() => {
+                        handleResetStateDistrictName();
+                      }}
+                    >
+                      Reset
+                    </button>
+                    <button
+                      className={styles.custombtn}
+                      onClick={() => {
+                        handleChangeStateDistrictName();
+                      }}
+                    >
+                      Update
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <div className={styles.rolecontent}>
             <div className={styles.upload}>
@@ -787,14 +981,12 @@ const Setting = () => {
                 <input
                   type="file"
                   accept=".xlsx,.csv"
-                  onChange={(e) => {
-                    handleUpload(e.target.files[0]);
-                  }}
+                  onChange={(e) => setSelectedFile(e.target.files[0])}
                 />
                 <button
                   className={styles.custombtn}
                   disabled={isLoading === true}
-                  onClick={handleUpload}
+                  onClick={() => handleUpload(selectedFile)}
                 >
                   Upload
                 </button>
@@ -1053,7 +1245,7 @@ const Setting = () => {
                   style={{ display: autoShotEmail.length > 0 ? "" : "none" }}
                   placeholder="16 Digit Email Pass Code "
                   className={styles.custominput2}
-                                    value={autoEmailPassword}
+                  value={autoEmailPassword}
                   onChange={(e) => {
                     setAutoEmailPassword(e.target.value);
                   }}
@@ -1082,7 +1274,7 @@ const Setting = () => {
             </div>
 
             <div className={styles.pincodedata1}>
-              <h4>Sender Email</h4>
+              {fetchBackupEmail?.shutEmail?.length > 0 && <h4>Sender Email</h4>}
               <table>
                 {fetchBackupEmail?.shutEmail?.map((item, idx) => (
                   <tr>
@@ -1109,7 +1301,7 @@ const Setting = () => {
                   </tr>
                 ))}
               </table>
-              <h4>Receiver Emails</h4>
+              {fetchBackupEmail?.result?.length > 0 && <h4>Receiver Emails</h4>}
               <table>
                 {fetchBackupEmail?.result?.map((item, idx) => (
                   <tr>

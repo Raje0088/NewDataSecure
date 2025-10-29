@@ -95,6 +95,14 @@ const clientHistorySchema = new mongoose.Schema({
     },
     action_db: String,
     database_status_db: String,
+    master_data_db: {
+        userId: String,
+        excelId: { type: String },
+        state: { type: [String], default: [] },
+        district: [{ name: String, total: Number }],
+        pincode: { type: [String], default: [] },
+        clientIds: { type: [String], default: [] },
+    }
 }, { timestamps: true })
 
 clientHistorySchema.index({ isActive_db: 1 })

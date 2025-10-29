@@ -11,6 +11,11 @@ const AuthProvider = ({ children }) => {
   const [userLoginId, setUserLoginId] = useState(() => {
     return localStorage.getItem("userLoginId") || null;
   });
+  const [userPermissions, setUserPermission] = useState(()=>{
+    return  JSON.parse(localStorage.getItem("userPermissions")) || null;
+      
+    
+  })
 
   useEffect(() => {
     if (userLoginId) {
@@ -18,7 +23,12 @@ const AuthProvider = ({ children }) => {
     } else {
       localStorage.removeItem("userLoginId");
     }
-  }, [userLoginId]);
+    if (userPermissions) {
+      localStorage.setItem("userPermissions", JSON.stringify(userPermissions));
+    } else {
+      localStorage.removeItem("userPermissions");
+    }
+  }, [userLoginId,userPermissions]);
 
   useEffect(() => {
     if (!userLoginId) return;
@@ -63,7 +73,7 @@ const AuthProvider = ({ children }) => {
 
 
   return (
-    <AuthContext.Provider value={{ userLoginId, setUserLoginId }}>
+    <AuthContext.Provider value={{ userLoginId, setUserLoginId,userPermissions, setUserPermission}}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,20 +2,15 @@ const mongoose = require("mongoose");
 
 const UserSchema = new mongoose.Schema({
     roleName: String,
+    roleType: { type: String, enum: ["Superadmin", "Admin", "Executive"] },
     name: String,
     mobile: String,
-    division: [String],
+    division: { type: Array },
     email: String,
-    assignProduct: [String],
+    assignProduct: { type: Array },
     generateUniqueId: { type: String, unique: true },
-    createdBy:String,
-    permission:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"PermissionModel",
-    }
-});
-
-const PermissionSchema = new mongoose.Schema({
+    createdBy: String,
+    updatedBy: String,
     create_P: { type: Boolean, default: false },
     update_P: { type: Boolean, default: false },
     delete_P: { type: Boolean, default: false },
@@ -23,23 +18,47 @@ const PermissionSchema = new mongoose.Schema({
     view_P: { type: Boolean, default: false },
     uploadFile_P: { type: Boolean, default: false },
     download_P: { type: Boolean, default: false },
-    generateUniqueId: { type: String, unique: true },
-    authorizedBy: { type: String, default: "Super Admin" }
-})
-
-const Secure_User_Data_Schema = new mongoose.Schema({
     userID: String,
     password: String,
-    confirmPassword: String,
-    generateUniqueId: { type: String, unique: true },
-    authorizedBy: { type: String, default: "Super Admin" }
+    isActive: { type: String, enum: ["Active", "Deactive"], default: "Active" },
+    master_data_db: {
+        excelId: { type: String },
+        state: { type: [String], default: [] },
+        district: [{ name: String, total: Number }],
+        pincode: { type: [String], default: [] },
+        clientIds: { type: [String], default: [] },
+    }
+
+}, { timestamps: true });
+
+const userHistorSchema = new mongoose.Schema({
+    userHistory: { type: Object },
 })
 
-// ✅ Prevent OverwriteModelError during hot-reloads (nodemon)
-// const UserModel = mongoose.models.UserModel || mongoose.model("UserModel", UserSchema);
+// const PermissionSchema = new mongoose.Schema({
+//     create_P: { type: Boolean, default: false },
+//     update_P: { type: Boolean, default: false },
+//     delete_P: { type: Boolean, default: false },
+//     edit_P: { type: Boolean, default: false },
+//     view_P: { type: Boolean, default: false },
+//     uploadFile_P: { type: Boolean, default: false },
+//     download_P: { type: Boolean, default: false },
+//     generateUniqueId: { type: String, unique: true },
+//     authorizedBy: { type: String, default: "Super Admin" }
+// })
+
+// const Secure_User_Data_Schema = new mongoose.Schema({
+//     userID: String,
+//     password: String,
+//     confirmPassword: String,
+//     generateUniqueId: { type: String, unique: true },
+//     authorizedBy: { type: String, default: "Super Admin" }
+// })
+
 
 const UserModel = mongoose.model("UserModel", UserSchema);
-const PermissionModel = mongoose.model("PermissionModel", PermissionSchema);
-const Secure_User_Data_Model = mongoose.model("Secure_User_Data_Model", Secure_User_Data_Schema);
+const userHistorModel = mongoose.model("userHistorModel", userHistorSchema);
+// const PermissionModel = mongoose.model("PermissionModel", PermissionSchema);
+// const Secure_User_Data_Model = mongoose.model("Secure_User_Data_Model", Secure_User_Data_Schema);
 
-module.exports = { UserModel, PermissionModel, Secure_User_Data_Model }; 
+module.exports = { UserModel, userHistorModel }; 

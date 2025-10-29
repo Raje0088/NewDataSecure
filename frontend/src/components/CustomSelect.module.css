@@ -25,6 +25,9 @@
   min-width: 0;
   display: flex;
 }
+.checkboxdiv{
+  display: flex
+}
 .dropdown-icon {
   width: 25px;
   display: flex;

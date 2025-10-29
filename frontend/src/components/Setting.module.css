@@ -159,6 +159,10 @@
   padding: 2px 5px;
   width: 100%;
 }
+.customselect {
+  padding: 2px 5px;
+  width: 200px;
+}
 .upload {
   width: 60%;
   padding: 10px;
@@ -176,6 +180,56 @@
   height: auto;
   padding: 10px;
   overflow: auto;
+}
+.align-end {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: 20px;
+}
+.updatenamespan {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+}
+.updatenamespan > label {
+  font-weight: 600;
+  font-size: 14px;
+}
+.changediv {
+  width: 100%;
+  display: flex;
+  gap: 40px;
+  padding: 15px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.changediv > span {
+  display: flex;
+  gap: 10px;
+}
+.changediv > input {
+  padding: 4px 5px;
+}
+.popup {
+  position: fixed;
+  background-color: transparent;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.popbody {
+  background-color: white;
+  width: 60%;
+  height: 50%;
+  border: 1px solid black;
+  padding: 10px;
 }
 .upload-section {
   width: 100%;
@@ -462,5 +516,24 @@
   }
   .autobackubtndiv {
     width: 100%;
+  }
+  .popbody{
+    width:80%;
+    height: auto;
+  }
+  .changediv {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap:5px
+  }
+  .updatenamespan > select{
+    width:100%;
+  }
+  .exchangeicon{
+    width:100%;
+    display:flex;
+    align-items: center;
+    justify-content: center;
   }
 }

@@ -22,12 +22,12 @@ import { base_url } from "../../config/config";
 
 const SearchPincode = () => {
   const navigate = useNavigate();
-  const { userLoginId } = useContext(AuthContext);
+  const { userLoginId,userPermissions } = useContext(AuthContext);
   const { state, from } = useLocation();
   const [getSelectedTime, setGetSelectedTime] = useState("");
   const [taskDetails, setTaskDetails] = useState(null);
   const [isUserDB, setIsUserDB] = useState(false);
-
+  const [loading, setLoading] = useState(false);
   const [region, setRegion] = useState([]);
   const [districtOptions, setDistrictOptions] = useState([]);
   const [stateOptions, setStateOptions] = useState([]);
@@ -38,7 +38,7 @@ const SearchPincode = () => {
   const [feedback, setFeedback] = useState(false);
   const [isUnsavedNewForm, setIsUnsavedNewForm] = useState(false);
   const [getSelectedNewTime, setGetSelectedNewTime] = useState("");
-  const [clientDetails, setClientDetails] = useState({
+  const initialClientDetails = {
     sr_no: "",
     clientId: "",
     bussinessNames: {},
@@ -72,7 +72,7 @@ const SearchPincode = () => {
       follow_up_db: { completed: false, completedDate: "" },
       installation_db: { completed: false, completedDate: "" },
       demo_db: { completed: false, completedDate: "" },
-      recovery_db: { completed: false, completedDate: "", recoveryHistory: [] },
+      recovery_db: { completed: false, completedDate: "" },
       target_db: { completed: false, completedDate: "" },
       no_of_new_calls_db: { completed: false, completedDate: "" },
       support_db: { completed: false, completedDate: "" },
@@ -104,7 +104,10 @@ const SearchPincode = () => {
       referenceId: "",
       mode: "",
     },
-  });
+  };
+  const [clientDetails, setClientDetails] = useState(initialClientDetails);
+  const [originalData, setOriginalData] = useState([]);
+  const [isModified, setIsModified] = useState(false);
   const [stageOptions, setStageOptions] = useState([
     { label: "Demo", value: "demo_db" },
     { label: "Installation", value: "installation_db" },
@@ -114,7 +117,6 @@ const SearchPincode = () => {
     { label: "In-process", value: "in-process_db" },
     { label: "Dispatched", value: "dispatched_db" },
   ]);
-
   const [selectedStageOptions, setSelectedStageOptions] = useState([]);
   const [userProductList, setUserProductList] = useState([]);
   const [mapClientAllHistory, setMapClientAllHistory] = useState([]);
@@ -161,6 +163,7 @@ const SearchPincode = () => {
     "CHEQUE",
   ];
   const [historyPop, setHistoryPop] = useState(false);
+  const [activedBackButton, setActivedBackButton] = useState(false);
 
   useEffect(() => {
     setClientDetails((prev) => ({
@@ -174,68 +177,195 @@ const SearchPincode = () => {
 
   //ONLY TO MANAGE STATES COMING FROM OTHER ROUTES
   useEffect(() => {
-    if (state?.from === "searchClient") {
-      setTaskDetails(state?.selectedClients);
-    } else if (state?.from === "remainder") {
-      setTaskDetails([state?.id]);
-      setStageTab("Completion");
-      setSelectNewStage((state.stg || []).map((stage) => stage));
-    } else {
-      setTaskDetails(state?.taskdata ? [state.taskdata] : []);
+    if (!state) {
+      handleClientNewForm();
+      return;
     }
+    const fetchState = async () => {
+      //   //COMING FROM SEARCHPAGE WHEN VIEW IT SINGLE RECORD OR MULTIPLE RECORD
+      if (state?.from === "searchClient") {
+        setTaskDetails(state?.selectedClients);
+        setActivedBackButton(true);
+        //PASSING
+      } else if (state?.from === "userConfiguration") {
+        setTaskDetails(state?.selectedClients);
+        setActivedBackButton(true);
+        //PASSING
+      } else if (state?.from === "remainder") {
+        setTaskDetails([state?.id]);
+        setStageTab("Completion");
+        setSelectNewStage((state.stg || []).map((stage) => stage));
+      } else if (state?.from === "assignWork") {
+        console.log("we are here", [state.ids], state);
 
-    // console.log("executiveId--", userLoginId);
-    console.log("taskDetails--", taskDetails);
+        setTaskDetails(state.ids);
+      } else {
+      }
+    };
+    fetchState();
   }, [state]);
 
   useEffect(() => {
-    if (!taskDetails) return;
-    console.log("taskDetails in useEffect", taskDetails);
-    if (taskDetails?.length > 0) {
-      setTaskClientIdArray(taskDetails);
-      setCurrentClientId(taskDetails[0]);
-      setTaskIndex(0);
-      setIsTaskMode(true);
-      setClientCount(taskDetails.length);
-    } else {
-      const storeId = localStorage.getItem("lastClientId");
-      console.log("taskDetails in useEffect else part bor", storeId);
-      if (storeId) {
-        setCurrentClientId(storeId);
+    const fetch = async () => {
+      if (!taskDetails) return;
+      console.log("taskDetails in useEffect", taskDetails);
+      if (taskDetails?.length > 0) {
+        setTaskClientIdArray(taskDetails);
+        setCurrentClientId(taskDetails[0]);
+        setTaskIndex(0);
+        setIsTaskMode(true);
+        setClientCount(taskDetails.length);
       } else {
-        const newId = "C0000001";
-        setCurrentClientId(newId);
-        localStorage.setItem("lastClientId", newId);
+        const storeId = localStorage.getItem("lastClientId");
+        if (storeId) {
+          setCurrentClientId(storeId);
+        } else {
+          const result = await axios.get(`${base_url}/raw-data/global-id`);
+          const lastId = result.data.getLastId;
+          const newId = `C${String(lastId).padStart(7, "0")}`;
+          setCurrentClientId(newId);
+          // localStorage.setItem("lastClientId", newId);
+          console.log("this is yo yo", newId);
+        }
+        setIsTaskMode(false);
       }
-      setIsTaskMode(false);
-    }
+    };
+    fetch();
   }, [taskDetails]);
 
   // FETCHING CLIENT DETAILS THROUGH CURRENCLIENTID FROM RAW DB AND CLIENT DB
+  const handleCurrentClientDetails = async (detail) => {
+    if (detail) {
+      const businessFields = [
+        { label: "Business Name *", value: detail.optical_name1_db },
+        { label: "Business Name 2", value: detail.optical_name2_db },
+        { label: "Business Name 3", value: detail.optical_name3_db },
+      ];
+      const mobiles = [
+        { label: "Primary Number *", value: detail.mobile_1_db },
+        { label: "Secondary Number", value: detail.mobile_2_db },
+        { label: "Tertiary Number", value: detail.mobile_3_db },
+      ];
+      const addresses = [
+        { label: "Address 1", value: detail.address_1_db },
+        { label: "Address 2", value: detail.address_2_db },
+        { label: "Address 3", value: detail.address_3_db },
+      ];
+      const emails = [
+        { label: "Email 1", value: detail.email_1_db },
+        { label: "Email 2", value: detail.email_2_db },
+        { label: "Email 3", value: detail.email_3_db },
+      ];
+      const todayDate = todaysDate();
+      if (detail.stage_db) {
+        setFeedback(true);
+      } else {
+        setFeedback(false);
+      }
+      setSelectedStageOptions(
+        (detail.stage_db || []).map((stage) => ({
+          label: stage.label,
+          value: stage.value,
+        }))
+      );
+
+      setSelectedUserProduct(
+        (detail.product_db || []).map((item) => ({
+          label: item.label,
+          value: item.value,
+        }))
+      );
+      setAmountHandle({
+        prevTotal: detail.amountDetails_db?.totalAmount || 0,
+        prevExtra: detail.amountDetails_db?.extraCharges || 0,
+        prevFinal: detail.amountDetails_db?.finalCost || 0,
+        prevNewAmount: detail.amountDetails_db?.newAmount || 0,
+        prevPaid: detail.amountDetails_db?.paidAmount || 0,
+        prevBalance: detail.amountDetails_db?.balanceAmount || 0,
+      });
+
+      setClientDetails((prev) => ({
+        ...prev,
+        sr_no: detail.client_serial_no_id,
+        clientId: detail.client_id,
+        addresses: addresses,
+        pincode: detail.pincode_db,
+        clientName: detail.client_name_db,
+        bussinessNames: businessFields,
+        followUpDate: detail.expectedDate_db || todayDate,
+        numbers: mobiles,
+        emails: emails,
+        quotationShare: detail.quotationShare_db,
+        expectedDate: "",
+        remarks: detail.remarks_db || "",
+        callType: detail.callType_db,
+        verifiedBy: detail.verifiedBy_db,
+        time: detail.time_db,
+        label: detail.label_db || "",
+        website: detail.website_db,
+        database: detail.database_status_db,
+        amountDetails: {
+          totalAmount: detail.amountDetails_db?.totalAmount || "",
+          paidAmount: detail.amountDetails_db?.paidAmount || "",
+          extraCharges: detail.amountDetails_db?.extraCharges || "",
+          finalCost: detail.amountDetails_db?.finalCost || "",
+          newAmount: 0,
+          balanceAmount: detail.amountDetails_db?.balanceAmount || "",
+          gst: detail.amountDetails_db?.gst || "",
+          referenceId: detail.amountDetails_db?.referenceId || "",
+          mode: detail.amountDetails_db?.mode || "",
+        },
+        completion: {
+          ...prev.completion,
+          receivedProduct: detail?.product_db?.[0]?.label || "",
+          status: detail?.completion_db?.status || "",
+          newExpectedDate: "",
+          newTime: "",
+          newRemark: detail?.completion_db?.newRemark || "",
+          newStage: detail?.completion_db?.newStage || "",
+        },
+      }));
+      if (detail.quotationShare_db && detail.quotationShare_db.trim() !== "") {
+        setQuotationYesNo(true);
+      } else {
+        setQuotationYesNo(false);
+      }
+      setDatabaseStatus(detail.database_status_db);
+      setCheckHotClient(detail?.tracking_db?.hot_db?.completed);
+      //console.log("checkhotclient", detail?.tracking_db?.hot_db?.completed);
+    }
+
+    const checkClientIdPresent = await axios.get(
+      `${base_url}/clients/check-clientid-present/${currentClientId}`
+    );
+    const message = checkClientIdPresent.data.message;
+    if (message === "present") {
+      setIsClientIdAvailableInDb(true);
+    } else {
+      setIsClientIdAvailableInDb(false);
+    }
+  };
+
   useEffect(() => {
     if (!currentClientId) return;
-
+    setLoading(true);
     const fetch = async () => {
       console.log("oo", currentClientId);
       const checkAndRedirectToUserPage = await axios.get(
         `${base_url}/subscribe-user/check-user-subscription/${currentClientId}`
       );
-      console.log("you are here ", checkAndRedirectToUserPage);
       if (
         checkAndRedirectToUserPage.data.result &&
         checkAndRedirectToUserPage.data.result.client_subscription_id
       ) {
-        console.log("moving to user page");
-        // const currentId = localStorage.getItem("lastClientId") || "C0000001";
-        // const numId = parseInt(currentId.replace("C", "")) + 1;
-        // const nextId = `C${String(numId).padStart(7, "0")}`;
-        // localStorage.setItem("lastClientId", nextId);
         const confirm = window.confirm("User Found.Please Switch to User Page");
         setIsUserDB(true);
         if (confirm)
           navigate("/userpage", {
-            state:
-              checkAndRedirectToUserPage.data.result.client_subscription_id,
+            state: {
+              id: checkAndRedirectToUserPage.data.result.client_id,
+              from: "clientpage",
+            },
           });
         // return;
       }
@@ -259,9 +389,9 @@ const SearchPincode = () => {
         );
         detail = result.data.result;
         // alert("id from Raw db");
-        console.log("client id get from raw data", result.data.result);
+        //console.log("client id get from raw data", result.data.result);
       }
-      console.log("detail data", detail);
+      //console.log("detail data", detail);
 
       if (detail) {
         const businessFields = [
@@ -312,8 +442,8 @@ const SearchPincode = () => {
           prevBalance: detail.amountDetails_db?.balanceAmount || 0,
         });
 
-        setClientDetails((prev) => ({
-          ...prev,
+        const mappedClient = {
+          ...initialClientDetails,
           sr_no: detail.client_serial_no_id,
           clientId: detail.client_id,
           addresses: addresses,
@@ -344,7 +474,7 @@ const SearchPincode = () => {
             mode: detail.amountDetails_db?.mode || "",
           },
           completion: {
-            ...prev.completion,
+            // ...prev.completion,
             receivedProduct: detail?.product_db?.[0]?.label || "",
             status: detail?.completion_db?.status || "",
             newExpectedDate: "",
@@ -352,7 +482,12 @@ const SearchPincode = () => {
             newRemark: detail?.completion_db?.newRemark || "",
             newStage: detail?.completion_db?.newStage || "",
           },
-        }));
+        };
+        setClientDetails(mappedClient);
+        setClientDetails(mappedClient);
+        setOriginalData(JSON.parse(JSON.stringify(mappedClient)));
+        setLoading(false);
+
         if (
           detail.quotationShare_db &&
           detail.quotationShare_db.trim() !== ""
@@ -378,6 +513,234 @@ const SearchPincode = () => {
     };
     fetch();
   }, [currentClientId, refresh]);
+
+  const deepEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+  // Enable/disable update button
+  useEffect(() => {
+    if (loading) return;
+    setIsModified(!deepEqual(clientDetails, originalData));
+    // console.log("modifed", !deepEqual(clientDetails, originalData));
+  }, [clientDetails, originalData]);
+
+  // =====================================================================
+
+  //ONLY TO MANAGE STATES COMING FROM OTHER ROUTES
+  // useEffect(() => {
+
+  //   //COMING FROM SEARCHPAGE WHEN VIEW IT SINGLE RECORD OR MULTIPLE RECORD
+  //   if (state?.from === "searchClient") {
+  //     setTaskDetails(state?.selectedClients);
+  //     setActivedBackButton(true);
+
+  //     //PASSING
+  //   } else if (state?.from === "remainder") {
+  //     setTaskDetails([state?.id]);
+  //     setStageTab("Completion");
+  //     setSelectNewStage((state.stg || []).map((stage) => stage));
+  //   } else {
+  //     setTaskDetails(state?.taskdata ? [state.taskdata] : []);
+  //   }
+
+  //   // console.log("executiveId--", userLoginId);
+  //   console.log("taskDetails--", taskDetails);
+  // }, [state]);
+
+  // useEffect(() => {
+  //   const fetch = async () => {
+  //     if (!taskDetails) return;
+  //     console.log("taskDetails in useEffect", taskDetails);
+  //     if (taskDetails?.length > 0) {
+  //       setTaskClientIdArray(taskDetails);
+  //       setCurrentClientId(taskDetails[0]);
+  //       setTaskIndex(0);
+  //       setIsTaskMode(true);
+  //       setClientCount(taskDetails.length);
+  //     } else {
+  //       const storeId = localStorage.getItem("lastClientId");
+  //       if (storeId) {
+  //         setCurrentClientId(storeId);
+  //       } else {
+  //         const result = await axios.get(`${base_url}/raw-data/global-id`)
+  //         const lastId = result.data.getLastId;
+  //         const newId = (`C${String(lastId).padStart(7,'0')}`)
+  //         setCurrentClientId(newId);
+  //         // localStorage.setItem("lastClientId", newId);
+  //         console.log("this is yo yo",newId)
+
+  //       }
+  //       setIsTaskMode(false);
+  //     }
+  //   };
+  //   fetch();
+  // }, [taskDetails]);
+
+  // useEffect(() => {
+  //   if (!currentClientId) return;
+
+  //   const fetch = async () => {
+  //     console.log("oo", currentClientId);
+  //     const checkAndRedirectToUserPage = await axios.get(
+  //       `${base_url}/subscribe-user/check-user-subscription/${currentClientId}`
+  //     );
+  //     console.log("you are here ", checkAndRedirectToUserPage);
+  //     if (
+  //       checkAndRedirectToUserPage.data.result &&
+  //       checkAndRedirectToUserPage.data.result.client_subscription_id
+  //     ) {
+  //       console.log("moving to user page");
+  //       // const currentId = localStorage.getItem("lastClientId") || "C0000001";
+  //       // const numId = parseInt(currentId.replace("C", "")) + 1;
+  //       // const nextId = `C${String(numId).padStart(7, "0")}`;
+  //       // localStorage.setItem("lastClientId", nextId);
+  //       const confirm = window.confirm("User Found.Please Switch to User Page");
+  //       setIsUserDB(true);
+  //       if (confirm)
+  //         navigate("/userpage", {
+  //           state:
+  //             checkAndRedirectToUserPage.data.result.client_subscription_id,
+  //         });
+  //       // return;
+  //     }
+  //     console.log("you are there");
+
+  //     // CLIENT HISTORY ROUTES TAKES BECOZ LAST UPDATE DATA NEEDS HERE FOR FOLLOWUP DATE
+  //     const checkClientHistoryIdRecord = await axios.get(
+  //       `${base_url}/history/get-last-updated-clienthistory/${currentClientId}`
+  //     );
+  //     let detail;
+  //     if (checkClientHistoryIdRecord.data.result) {
+  //       detail = checkClientHistoryIdRecord.data.result;
+  //       console.log(
+  //         "client id get from Client data",
+  //         checkClientHistoryIdRecord.data
+  //       );
+  //       // alert("id from client db");
+  //     } else {
+  //       const result = await axios.get(
+  //         `${base_url}/raw-data/search-raw-data/${currentClientId}`
+  //       );
+  //       detail = result.data.result;
+  //       // alert("id from Raw db");
+  //       console.log("client id get from raw data", result.data.result);
+  //     }
+  //     console.log("detail data", detail);
+
+  //     if (detail) {
+  //       const businessFields = [
+  //         { label: "Business Name *", value: detail.optical_name1_db },
+  //         { label: "Business Name 2", value: detail.optical_name2_db },
+  //         { label: "Business Name 3", value: detail.optical_name3_db },
+  //       ];
+  //       const mobiles = [
+  //         { label: "Primary Number *", value: detail.mobile_1_db },
+  //         { label: "Secondary Number", value: detail.mobile_2_db },
+  //         { label: "Tertiary Number", value: detail.mobile_3_db },
+  //       ];
+  //       const addresses = [
+  //         { label: "Address 1", value: detail.address_1_db },
+  //         { label: "Address 2", value: detail.address_2_db },
+  //         { label: "Address 3", value: detail.address_3_db },
+  //       ];
+  //       const emails = [
+  //         { label: "Email 1", value: detail.email_1_db },
+  //         { label: "Email 2", value: detail.email_2_db },
+  //         { label: "Email 3", value: detail.email_3_db },
+  //       ];
+  //       const todayDate = todaysDate();
+  //       if (detail.stage_db) {
+  //         setFeedback(true);
+  //       } else {
+  //         setFeedback(false);
+  //       }
+  //       setSelectedStageOptions(
+  //         (detail.stage_db || []).map((stage) => ({
+  //           label: stage.label,
+  //           value: stage.value,
+  //         }))
+  //       );
+
+  //       setSelectedUserProduct(
+  //         (detail.product_db || []).map((item) => ({
+  //           label: item.label,
+  //           value: item.value,
+  //         }))
+  //       );
+  //       setAmountHandle({
+  //         prevTotal: detail.amountDetails_db?.totalAmount || 0,
+  //         prevExtra: detail.amountDetails_db?.extraCharges || 0,
+  //         prevFinal: detail.amountDetails_db?.finalCost || 0,
+  //         prevNewAmount: detail.amountDetails_db?.newAmount || 0,
+  //         prevPaid: detail.amountDetails_db?.paidAmount || 0,
+  //         prevBalance: detail.amountDetails_db?.balanceAmount || 0,
+  //       });
+
+  //       setClientDetails((prev) => ({
+  //         ...prev,
+  //         sr_no: detail.client_serial_no_id,
+  //         clientId: detail.client_id,
+  //         addresses: addresses,
+  //         pincode: detail.pincode_db,
+  //         clientName: detail.client_name_db,
+  //         bussinessNames: businessFields,
+  //         followUpDate: detail.expectedDate_db || todayDate,
+  //         numbers: mobiles,
+  //         emails: emails,
+  //         quotationShare: detail.quotationShare_db,
+  //         expectedDate: "",
+  //         remarks: detail.remarks_db || "",
+  //         callType: detail.callType_db,
+  //         verifiedBy: detail.verifiedBy_db,
+  //         time: detail.time_db,
+  //         label: detail.label_db || "",
+  //         website: detail.website_db,
+  //         database: detail.database_status_db,
+  //         amountDetails: {
+  //           totalAmount: detail.amountDetails_db?.totalAmount || "",
+  //           paidAmount: detail.amountDetails_db?.paidAmount || "",
+  //           extraCharges: detail.amountDetails_db?.extraCharges || "",
+  //           finalCost: detail.amountDetails_db?.finalCost || "",
+  //           newAmount: 0,
+  //           balanceAmount: detail.amountDetails_db?.balanceAmount || "",
+  //           gst: detail.amountDetails_db?.gst || "",
+  //           referenceId: detail.amountDetails_db?.referenceId || "",
+  //           mode: detail.amountDetails_db?.mode || "",
+  //         },
+  //         completion: {
+  //           ...prev.completion,
+  //           receivedProduct: detail?.product_db?.[0]?.label || "",
+  //           status: detail?.completion_db?.status || "",
+  //           newExpectedDate: "",
+  //           newTime: "",
+  //           newRemark: detail?.completion_db?.newRemark || "",
+  //           newStage: detail?.completion_db?.newStage || "",
+  //         },
+  //       }));
+  //       if (
+  //         detail.quotationShare_db &&
+  //         detail.quotationShare_db.trim() !== ""
+  //       ) {
+  //         setQuotationYesNo(true);
+  //       } else {
+  //         setQuotationYesNo(false);
+  //       }
+  //       setDatabaseStatus(detail.database_status_db);
+  //       setCheckHotClient(detail?.tracking_db?.hot_db?.completed);
+  //       console.log("checkhotclient", detail?.tracking_db?.hot_db?.completed);
+  //     }
+
+  //     const checkClientIdPresent = await axios.get(
+  //       `${base_url}/clients/check-clientid-present/${currentClientId}`
+  //     );
+  //     const message = checkClientIdPresent.data.message;
+  //     if (message === "present") {
+  //       setIsClientIdAvailableInDb(true);
+  //     } else {
+  //       setIsClientIdAvailableInDb(false);
+  //     }
+  //   };
+  //   fetch();
+  // }, [currentClientId, refresh]);
 
   //WHEN PINCODE ENTER AUTO FETCH STATE,DISTRICT, DEBOUNCING USED
   useEffect(() => {
@@ -460,7 +823,7 @@ const SearchPincode = () => {
   }, [clientDetails.pincode, clientDetails.district, clientDetails.state]);
 
   const handleSearchInput = (name, value) => {
-    console.log(name, value);
+    //console.log(name, value);
     setClientDetails((prev) => ({
       ...prev,
       [name]: value,
@@ -489,14 +852,18 @@ const SearchPincode = () => {
             `${base_url}/users/search-by-user/${userLoginId}`
           );
           // console.log("User");
-          // console.log("product", result?.data?.assignProduct);
-          productsList = result?.data?.assignProduct?.map((item) => ({
-            label: item,
-            value: item,
+          console.log("product", result.data.result.assignProduct);
+          productsList = result?.data?.result?.assignProduct?.map((item) => ({
+            label: item.label,
+            value: item.label,
           }));
         }
 
-        // console.log("product============", productsList);
+        console.log(
+          "product============",
+          productsList,
+          result.data.result.assignProduct
+        );
         setUserProductList(productsList);
       } catch (err) {
         console.log("internal error", err);
@@ -610,7 +977,7 @@ const SearchPincode = () => {
           tracker: clientDetails.tracker,
           label: clientDetails.label,
           amountDetails: clientDetails.amountDetails,
-          database: "client_db",
+          database: "Client",
           followUpTime: getSelectedTime,
           completion: clientDetails.completion,
           action: "create User",
@@ -670,11 +1037,6 @@ const SearchPincode = () => {
         clientDetails.completion &&
         clientDetails.completion.status === "Done"
       ) {
-        const { totalAmount, paidAmount, balanceAmount } = handleCalculation(
-          null,
-          0
-        );
-
         await handleSaveSubscribeUserDetails();
       }
 
@@ -683,18 +1045,6 @@ const SearchPincode = () => {
         clientDetails.amountDetails.newAmount > 0
       ) {
         await handlePaymentDetails();
-      }
-
-      const rawRecord = await axios.get(
-        `${base_url}/raw-data/search-raw-data/${clientDetails.clientId}`
-      );
-      if (!rawRecord.data || !rawRecord.data.result) {
-        // console.log("Record not found in Raw DB, saving...");
-        const rawSaved = await handleSaveRawDBDetails();
-        if (!rawSaved) {
-          console.error("Failed to save in Raw DB, aborting client save");
-          return;
-        }
       }
 
       if (isUnsavedNewForm) {
@@ -712,45 +1062,48 @@ const SearchPincode = () => {
         });
       }
 
+      const clientDetailsObj = {
+        clientSerialNo: clientDetails.sr_no,
+        clientId: clientDetails.clientId,
+        userId: userLoginId,
+        bussinessNames: clientDetails.bussinessNames,
+        clientName: clientDetails.clientName,
+        numbers: clientDetails.numbers,
+        emails: clientDetails.emails,
+        website: clientDetails.website,
+        addresses: clientDetails.addresses,
+        pincode: clientDetails.pincode,
+        district: clientDetails.district,
+        state: clientDetails.state,
+        country: clientDetails.country,
+        assignBy: taskDetails?.assignBy_db || "NA",
+        assignTo: taskDetails?.assignTo_db || userLoginId || "NA",
+        product: selectedUserProduct.map((prod) => ({
+          label: prod.label,
+          value: prod.value,
+        })),
+        stage: selectedStageOptions.map((stage) => ({
+          label: stage.label,
+          value: stage.value,
+        })),
+        quotationShare: clientDetails.quotationShare,
+        expectedDate: clientDetails.expectedDate,
+        remarks: clientDetails.remarks,
+        callType: clientDetails.callType,
+        followUpDate: clientDetails.followUpDate,
+        verifiedBy: clientDetails.verifiedBy,
+        tracker: clientDetails.tracker,
+        label: clientDetails.label,
+        amountDetails: clientDetails.amountDetails,
+        database: "Client",
+        followUpTime: getSelectedTime,
+        completion: clientDetails.completion,
+        action: "create",
+      };
       const result = await axios.post(
         `${base_url}/clients/create-client-detail`,
         {
-          clientSerialNo: clientDetails.sr_no,
-          clientId: clientDetails.clientId,
-          userId: userLoginId,
-          bussinessNames: clientDetails.bussinessNames,
-          clientName: clientDetails.clientName,
-          numbers: clientDetails.numbers,
-          emails: clientDetails.emails,
-          website: clientDetails.website,
-          addresses: clientDetails.addresses,
-          pincode: clientDetails.pincode,
-          district: clientDetails.district,
-          state: clientDetails.state,
-          country: clientDetails.country,
-          assignBy: taskDetails?.assignBy_db || "NA",
-          assignTo: taskDetails?.assignTo_db || userLoginId || "NA",
-          product: selectedUserProduct.map((prod) => ({
-            label: prod.label,
-            value: prod.value,
-          })),
-          stage: selectedStageOptions.map((stage) => ({
-            label: stage.label,
-            value: stage.value,
-          })),
-          quotationShare: clientDetails.quotationShare,
-          expectedDate: clientDetails.expectedDate,
-          remarks: clientDetails.remarks,
-          callType: clientDetails.callType,
-          followUpDate: clientDetails.followUpDate,
-          verifiedBy: clientDetails.verifiedBy,
-          tracker: clientDetails.tracker,
-          label: clientDetails.label,
-          amountDetails: clientDetails.amountDetails,
-          database: "client_db",
-          followUpTime: getSelectedTime,
-          completion: clientDetails.completion,
-          action: "create",
+          ...clientDetailsObj,
         },
         {
           headers: {
@@ -760,48 +1113,16 @@ const SearchPincode = () => {
         }
       );
 
-      const historyId = clientDetails.clientId.replace("C", "H_C");
-      console.log("historyId", historyId);
-
       const resultHistory = await axios.post(
         `${base_url}/history/create-history`,
         {
-          clientSerialNo: clientDetails.sr_no,
-          clientId: clientDetails.clientId,
-          userId: userLoginId,
-          bussinessNames: clientDetails.bussinessNames,
-          clientName: clientDetails.clientName,
-          numbers: clientDetails.numbers,
-          emails: clientDetails.emails,
-          website: clientDetails.website,
-          addresses: clientDetails.addresses,
-          pincode: clientDetails.pincode,
-          district: clientDetails.district,
-          state: clientDetails.state,
-          country: clientDetails.country,
-          assignBy: taskDetails?.assignBy_db || "NA",
-          assignTo: taskDetails?.assignTo_db || userLoginId || "NA",
-          product: selectedUserProduct.map((prod) => ({
-            label: prod.label,
-            value: prod.value,
-          })),
-          stage: selectedStageOptions.map((stage) => ({
-            label: stage.label,
-            value: stage.value,
-          })),
-          quotationShare: clientDetails.quotationShare,
-          expectedDate: clientDetails.expectedDate,
-          remarks: clientDetails.remarks,
-          callType: clientDetails.callType,
-          followUpDate: clientDetails.followUpDate,
-          verifiedBy: clientDetails.verifiedBy,
-          database: "client_db",
-          tracker: clientDetails.tracker,
-          completion: clientDetails.completion,
-          label: clientDetails.label,
-          amountDetails: clientDetails.amountDetails,
-          followUpTime: getSelectedTime,
-          action: "create",
+          ...clientDetailsObj,
+        },
+        {
+          headers: {
+            generateuniqueid: taskDetails?.assignTo_db || userLoginId || "NA",
+            "Content-Type": "application/json",
+          },
         }
       );
       console.log(
@@ -823,7 +1144,9 @@ const SearchPincode = () => {
     } catch (err) {
       console.log("internal err", err);
       if (err) {
-        return alert("Shop Name required");
+        return alert(
+          err && err.response && err.response.data && err.response.data.message
+        );
       }
     }
   };
@@ -882,8 +1205,8 @@ const SearchPincode = () => {
             district: clientDetails.district,
             state: clientDetails.state,
             country: clientDetails.country,
-            assignBy: taskDetails?.assignBy_db || "NA",
-            assignTo: taskDetails?.assignTo_db || userLoginId,
+            assignBy: state?.assignBy_db || "NA",
+            assignTo: state?.assignTo_db || userLoginId,
             product: selectedUserProduct.map((prod) => ({
               label: prod.label,
               value: prod.value,
@@ -897,7 +1220,7 @@ const SearchPincode = () => {
             remarks: clientDetails.remarks,
             followUpDate: clientDetails.followUpDate,
             verifiedBy: clientDetails.verifiedBy,
-            database: "client_db",
+            database: "Client",
             label: clientDetails.label,
             tracker: clientDetails.tracker,
             completion: clientDetails.completion,
@@ -925,8 +1248,8 @@ const SearchPincode = () => {
           district: clientDetails.district,
           state: clientDetails.state,
           country: clientDetails.country,
-          assignBy: taskDetails?.assignBy_db || "NA",
-          assignTo: taskDetails?.assignTo_db || userLoginId,
+          assignBy: state?.assignBy_db || "NA",
+          assignTo: state?.assignTo_db || userLoginId,
           product: selectedUserProduct.map((prod) => ({
             label: prod.label,
             value: prod.value,
@@ -941,7 +1264,7 @@ const SearchPincode = () => {
           callType: clientDetails.callType,
           followUpDate: clientDetails.followUpDate,
           verifiedBy: clientDetails.verifiedBy,
-          database: "client_db",
+          database: "Client",
           label: clientDetails.label,
           tracker: clientDetails.tracker,
           completion: clientDetails.completion,
@@ -1014,8 +1337,8 @@ const SearchPincode = () => {
         setCurrentClientId(taskClientIdArray[newIndex]);
         setCurrentClientCount(newIndex + 1);
 
-        console.log("prevcount", newIndex + 1);
-        console.log("prev taskClientIdArray Id", taskClientIdArray[newIndex]);
+        //console.log("prevcount", newIndex + 1);
+        //console.log("prev taskClientIdArray Id", taskClientIdArray[newIndex]);
       }
     } else {
       const id = localStorage.getItem("lastClientId");
@@ -1023,12 +1346,12 @@ const SearchPincode = () => {
         const currentIdNumber = parseInt(id.replace("C", ""));
         if (currentIdNumber <= 1) return;
         const nextCount = currentIdNumber - 1;
-        console.log("nextCount", nextCount);
+        //console.log("nextCount", nextCount);
         const nextId = `C${String(nextCount).padStart(7, "0")}`;
         setCurrentClientId(nextId);
         setNewClientFormId(null);
         localStorage.setItem("lastClientId", nextId);
-        console.log("lastClient save in localstorage", nextId);
+        //console.log("lastClient save in localstorage", nextId);
       }
     }
 
@@ -1037,90 +1360,39 @@ const SearchPincode = () => {
     setStageTab("Planner");
     setIsUserDB(false);
   };
-
+  // console.log("userDB",isUserDB)
   //CREATE NEW FORM FOR CLIENT DB
   const handleClientNewForm = async () => {
+    //console.log("faffsadfsd");
     try {
-      const result = await axios.get(`${base_url}/raw-data/get-last-client-id`);
-      console.log("result hai", result.data.lastClientId);
-      const newSrno = result.data.lastClientId.client_serial_no_id + 1;
-      const lastClientId = result.data.lastClientId.client_id;
-      const numCount = parseInt(lastClientId.replace("C", ""));
-      const clientNewId = `C${String(numCount + 1).padStart(7, "0")}`;
+      const result = await axios.get(`${base_url}/raw-data/global-id`);
+      //console.log("lastId", result.data.getLastId);
+      const lastSrno = result.data.getLastId;
+      const getClientId = `C${String(lastSrno).padStart(7, "0")}`;
+      //console.log("getClientId", getClientId);
       const TodaysDate = new Date().toISOString().split("T")[0];
       setClientDetails({
-        sr_no: newSrno,
-        clientId: clientNewId,
+        ...initialClientDetails,
+        clientId: getClientId,
+        sr_no: lastSrno,
         followUpDate: TodaysDate,
         bussinessNames: [{ label: "Business Name", value: "" }],
-        clientName: "",
         numbers: [{ label: "Primary Number", value: "" }],
         emails: [{ label: "Email 1", value: "" }],
-        website: "",
         addresses: [{ label: "Address 1", value: "" }],
-        pincode: "",
-        district: "",
-        state: "",
-        country: "",
         assign: { assignBy: "", assignTo: "" },
-        product: "",
-        stage: "",
-        quotationShare: "",
-        expectedDate: "",
-        remarks: "",
-        callType: "",
-        verifiedBy: "",
-        label: "",
-        tracker: {
-          new_data_db: { completed: false, completedDate: "" },
-          leads_db: { completed: false, completedDate: "" },
-          training_db: { completed: false, completedDate: "" },
-          follow_up_db: { completed: false, completedDate: "" },
-          installation_db: { completed: false, completedDate: "" },
-          demo_db: { completed: false, completedDate: "" },
-          recovery_db: {
-            completed: false,
-            completedDate: "",
-            recoveryHistory: [],
-          },
-          target_db: { completed: false, completedDate: "" },
-          no_of_new_calls_db: { completed: false, completedDate: "" },
-          support_db: { completed: false, completedDate: "" },
-          out_bound_db: { completed: false, completedDate: "" },
-          in_bound_db: { completed: false, completedDate: "" },
-          hot_db: { completed: false, completedDate: "" },
-          lost_db: { completed: false, completedDate: "" },
-          create_db: { completed: false, completedDate: "" },
-          update_db: { completed: false, completedDate: "" },
-          deactivate_db: { completed: false, completedDate: "" },
-        },
-        amountDetails: {
-          totalAmount: 0,
-          paidAmount: 0,
-          balanceAmount: 0,
-          extraCharges: 0,
-          finalCost: 0,
-          newAmount: 0,
-        },
-        label: "",
-        completion: {
-          receivedProduct: "",
-          status: "",
-          newExpectedDate: "",
-          newTime: "",
-          newRemark: "",
-        },
       });
-      // setIsClientIdAvailableInDb(false)
 
-      setCurrentClientId(clientNewId);
-      setIsUnsavedNewForm(true);
+      setCurrentClientId(getClientId);
+      // setIsUnsavedNewForm(true); // FOR FRESH NEW CLIENT WHICH NOT PRESENT IN RAW FOR THIS USING SO ALSO SENDING DEACTIVATED COPY IN RAW DB
       setSelectedStageOptions([]);
       setSelectedUserProduct([]);
       setCheckHotClient(false);
       setFeedback(false);
+      handleTimeChange("HH:MM:SS AM/PM");
+      handleNewTimeChange("HH:MM:SS AM/PM");
     } catch (err) {
-      console.log("internal errro", err);
+      //console.log("internal errro", err);
     }
   };
 
@@ -1153,7 +1425,7 @@ const SearchPincode = () => {
   };
 
   const handleStageChange = (selectedOptions) => {
-    console.log("Full Selected Objects:", selectedOptions);
+    //console.log("Full Selected Objects:", selectedOptions);
 
     let updatedOptions = [...(selectedOptions || [])];
     const tempStageValues = updatedOptions.map((item) => item.value);
@@ -1188,7 +1460,7 @@ const SearchPincode = () => {
     setClientDetails((prev) => {
       const updatedTracker = { ...(prev.tracker || {}) };
       //Loop over all tracker keys and update based on selection
-      console.log("updatedTracker", updatedTracker);
+      //console.log("updatedTracker", updatedTracker);
       Object.keys(updatedTracker).forEach((key) => {
         // Object.keys(updatedTracker) contains all keys from tracker object ---> ["follow_up", "installation_db", "demo_db", "hot_db", "lost_db"]
         if (selectedStageValues.includes(key)) {
@@ -1202,9 +1474,9 @@ const SearchPincode = () => {
             completedDate: "",
           };
         }
-        console.log(
-          `Key: ${key}, Completed: ${updatedTracker[key].completed}, Date: ${updatedTracker[key].completedDate}`
-        );
+        // console.log(
+        //   `Key: ${key}, Completed: ${updatedTracker[key].completed}, Date: ${updatedTracker[key].completedDate}`
+        // );
       });
 
       return {
@@ -1247,14 +1519,14 @@ const SearchPincode = () => {
         }
       );
       setAllSearchClientData(result.data);
-      console.log("search found", result.data);
+      //console.log("search found", result.data);
     } catch (err) {
       console.log("internal error", err);
     }
   };
 
   const handleClientIdClick = (clickId) => {
-    console.log("client page ", clickId);
+    //console.log("client page ", clickId);
     setCurrentClientId(clickId);
   };
 
@@ -1404,11 +1676,25 @@ const SearchPincode = () => {
     }));
   };
 
-  const goToBack = () =>{
-    navigate("/search-client")
+  const goToBack = (from) => {
+    if(state?.from === "searchClient"){
+      navigate("/search-client");
+    }
+    if(state?.from === "userConfiguration"){
+      navigate("/");
+    }
+  };
+
+  const handleDeactive =async()=>{
+    try{
+      const result  = await  axios.put(`${base_url}/raw-data/deactivate-rawdata/${currentClientId}`)
+      alert(result.data.message)
+    }catch(err){
+      console.log("internal  error",err)
+    }
   }
   return (
-    <> 
+    <>
       <div className={styles.main}>
         <div className={styles.content}>
           <header className={styles.header}>
@@ -1444,7 +1730,7 @@ const SearchPincode = () => {
                     }}
                   />
                 </span>
-              ) : databaseStatus === "client_db" ? (
+              ) : databaseStatus === "Client" ? (
                 <span className={styles.verified}>
                   {verifiedByEmployee ? (
                     <span
@@ -1555,7 +1841,7 @@ const SearchPincode = () => {
                   initialLabel={"Bussiness Name *"}
                   initialFields={clientDetails.bussinessNames}
                   onChange={(values) => {
-                    console.log("Bussiness name values", values);
+                    //console.log("Bussiness name values", values);
                     const businessNames = values;
                     setClientDetails((prev) => ({
                       ...prev,
@@ -1570,7 +1856,7 @@ const SearchPincode = () => {
                   initialLabel={"Primary Number *"}
                   initialFields={clientDetails.numbers}
                   onChange={(values) => {
-                    console.log("numbers", values);
+                    //console.log("numbers", values);
                     setClientDetails((prev) => ({
                       ...prev,
                       numbers: values,
@@ -1584,7 +1870,7 @@ const SearchPincode = () => {
                   initialLabel={"Email 1"}
                   initialFields={clientDetails.emails}
                   onChange={(values) => {
-                    console.log("Email", values);
+                    //console.log("Email", values);
                     setClientDetails((prev) => ({
                       ...prev,
                       emails: values,
@@ -1598,7 +1884,7 @@ const SearchPincode = () => {
                   initialLabel={"Address 1"}
                   initialFields={clientDetails.addresses}
                   onChange={(values) => {
-                    console.log("Bussiness name values", values);
+                    //console.log("Bussiness name values", values);
                     setClientDetails((prev) => ({
                       ...prev,
                       addresses: values,
@@ -1614,7 +1900,7 @@ const SearchPincode = () => {
                   label={"Assign By"}
                   name={"assign_by"}
                   id={"assign_by"}
-                  value={taskDetails?.assignBy_db || "NA"}
+                  value={state?.assignBy || "NA"}
                   readOnly={true}
                   onChange={(e) => {
                     handleSearchInput("assignBy", e.target.value);
@@ -1626,7 +1912,7 @@ const SearchPincode = () => {
                   label={"Assign To"}
                   name={"assign_to"}
                   id={"assign_to"}
-                  value={taskDetails?.assignTo_db || userLoginId}
+                  value={state?.assignTo || userLoginId}
                   readOnly={true}
                   onChange={(e) => {
                     handleSearchInput("assignTo", e.target.value);
@@ -1704,7 +1990,7 @@ const SearchPincode = () => {
                   onClick={() => {
                     setStageTab("Planner");
                   }}
-                   className={stageTab === "Planner" && styles.scheduleTab1}
+                  className={stageTab === "Planner" && styles.scheduleTab1}
                 >
                   Planner
                 </p>
@@ -1712,7 +1998,7 @@ const SearchPincode = () => {
                   onClick={() => {
                     setStageTab("Completion");
                   }}
-                   className={stageTab === "Completion" && styles.scheduleTab1}
+                  className={stageTab === "Completion" && styles.scheduleTab1}
                 >
                   Completion
                 </p>
@@ -1793,13 +2079,13 @@ const SearchPincode = () => {
                   options={stageOptions}
                   value={selectedStageOptions}
                   onChange={(selected) => {
-                    console.log("selected staget", selected);
+                    //console.log("selected staget", selected);
                     handleStageChange(selected);
                   }}
                   isMulti={true}
                 />
               </div>
-                            {checkInstallation && (
+              {checkInstallation && (
                 <div className={styles.recovery}>
                   <CustomInput
                     type="number"
@@ -1862,9 +2148,7 @@ const SearchPincode = () => {
                   />
 
                   <div className={styles.modediv}>
-                    <label htmlFor="" >
-                      Mode
-                    </label>
+                    <label htmlFor="">Mode</label>
                     <select
                       name=""
                       id=""
@@ -1982,8 +2266,6 @@ const SearchPincode = () => {
                   <option value="Less Interested">Less Interested</option>
                 </select>
               </div>
-
-
             </div>
             <div
               style={{ display: stageTab === "Planner" ? "" : "none" }}
@@ -1998,7 +2280,7 @@ const SearchPincode = () => {
                 }}
               ></textarea>
             </div>
-               {/* =================================== COMPLETION  ========================================================   */}
+            {/* =================================== COMPLETION  ========================================================   */}
             <div
               style={{ display: stageTab === "Completion" ? "" : "none" }}
               className={styles["feedback-layout"]}
@@ -2161,10 +2443,10 @@ const SearchPincode = () => {
                 />
               </div>
               <button
-                disabled={!checkPermissionManagement?.create_P}
+                // disabled={!checkPermissionManagement?.create_P}
                 onClick={() => {
                   handleClientNewForm();
-                  setIsNewDataEntry(true);
+                  // setIsNewDataEntry(true);
                 }}
               >
                 New
@@ -2180,43 +2462,59 @@ const SearchPincode = () => {
               {isClientIdAvailableInDb && (
                 <button
                   onClick={handleUpdateClientDetails}
-                  disabled={
-                    !checkPermissionManagement?.update_P || isUserDB === true
+                  style={
+                    isUserDB === true || !isModified
+                      ? { background: "gray", opacity: 0.5 }
+                      : {}
                   }
+                  disabled={!isModified || isUserDB === true}
                 >
                   Update
                 </button>
               )}
-              <button
+              {/* <button
                 disabled={
                   !checkPermissionManagement?.download_P || isUserDB === true
                 }
               >
                 Download
-              </button>
-              <button
+              </button> */}
+              {/* <button
                 disabled={
                   !checkPermissionManagement?.view_P || isUserDB === true
                 }
               >
                 View
-              </button>
-              <button
+              </button> */}
+              {/* <button
                 disabled={
                   !checkPermissionManagement?.uploadFile_P || isUserDB === true
                 }
               >
                 Upload
-              </button>
+              </button> */}
               <button
                 onClick={() => {
                   handleAllSearchClientData();
                   setCheckDisplaySearchClients((prev) => !prev);
                 }}
-              >
+                >
                 Search
               </button>
-              <button onClick={()=>{goToBack()}}>Back</button>
+            { userPermissions.delete_P &&   <button
+                  
+                  onClick={()=>{handleDeactive()}}
+                >
+                  Deactivate
+                </button>}
+              <button
+                style={{ display: activedBackButton === true ? "" : "none" }}
+                onClick={() => {
+                  goToBack();
+                }}
+              >
+                Back
+              </button>
               {checkDisplaySearchClients && (
                 <DisplaySearchClientsPortal
                   onClientIdClick={handleClientIdClick}
@@ -2282,36 +2580,49 @@ const SearchPincode = () => {
           <div
             style={{
               width: "100%",
-              height: "auto",
+              height: "100%",
               position: "fixed",
-              background: "white",
+              background: "gray",
               top: "0",
               left: "0",
               fontSize: "36px",
               padding: "50px",
+              overflow: "hidden",
             }}
           >
-            <History
-              onRefresh={refreshHistory}
-              onCurrentClientId={clientDetails.clientId}
-              sorts={"des"}
-            />
             <div
               style={{
                 width: "100%",
-                height: "auto",
+                height: "100%",
                 display: "flex",
-                justifyContent: "end",
-                padding: "10px",
+                flexDirection: "column",
+                overflow: "hidden",
               }}
             >
-              <button
-                onClick={() => {
-                  setHistoryPop(false);
+              <History
+                onRefresh={refreshHistory}
+                onCurrentClientId={clientDetails.clientId}
+                sorts={"des"}
+              />
+              <div
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  display: "flex",
+                  justifyContent: "end",
+                  padding: "10px",
+                  borderTop: "1px solid #ccc",
+                  background: "white",
                 }}
               >
-                Cancel
-              </button>
+                <button
+                  onClick={() => {
+                    setHistoryPop(false);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -2421,7 +2732,7 @@ const SearchPincode = () => {
                     }}
                   />
                 </span>
-              ) : databaseStatus === "client_db" ? (
+              ) : databaseStatus === "Client" ? (
                 <span
                   style={{
                     display: "flex",

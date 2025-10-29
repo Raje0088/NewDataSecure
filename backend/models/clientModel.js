@@ -73,8 +73,8 @@ const clientSchema = new mongoose.Schema({
     action_db: String,
     database_status_db: {
         type: String,
-        enum: ["client_db", "raw_db", "user_db"],
-        default: "client_db",
+        enum: ["Client", "Raw", "User"],
+        default: "Client",
     },
     completion_db: {
         receivedProduct: String,
@@ -95,8 +95,14 @@ const clientSchema = new mongoose.Schema({
         referenceId: String,
         mode: String,
     },
-
-
+    master_data_db: {
+        userId: String,
+        excelId: { type: String },
+        state: { type: [String], default: [] },
+        district: [{ name: String, total: Number }],
+        pincode: { type: [String], default: [] },
+        clientIds: { type: [String], default: [] },
+    }
 }, { timestamps: true })
 
 clientSchema.index({ isActive_db: 1 })

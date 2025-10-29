@@ -1,4 +1,4 @@
-const { Secure_User_Data_Model } = require("../models/user")
+const { UserModel } = require("../models/user")
 const { loginRecordModel } = require("../models/LoginRecordModel")
 const bcrypt = require('bcryptjs');
 const requestIp = require('request-ip')
@@ -47,7 +47,7 @@ const userLogin = async (req, res) => {
     try {
         const date = new Date().toISOString().split("T")[0]
         const { userId, password } = req.body;
-        const result = await Secure_User_Data_Model.findOne({ userID: userId });
+        const result = await UserModel.findOne({ userID: userId });
         if (!result) return res.status(500).json({ message: "User Id not Found" });
 
         // Get LAN/internal IP of the client
@@ -72,12 +72,24 @@ const userLogin = async (req, res) => {
             session_db: true
         });
 
-        console.log("login records", record);
+        console.log("login records", record,result);
+        const permission = {
+            create_P: result.create_P,
+            delete_P: result.delete_P,
+            download_P: result.download_P,
+            edit_P: result.edit_P,
+            update_P: result.update_P,
+            uploadFile_P: result.uploadFile_P,
+            view_P: result.view_P,
+            roleType:result.roleType,
+            userName :result.name,
+            masterData:result.master_data_db,
+        }
 
         // Check password
         const matchPassword = await bcrypt.compare(password, result.password);
         if (matchPassword) {
-            return res.status(200).json({ message: "Password Match", userLoginId: userId });
+            return res.status(200).json({ message: "Password Match", userLoginId: userId, permission: permission });
         } else {
             return res.status(500).json({ message: "Password not Match" });
         }
@@ -93,10 +105,10 @@ const userLogout = async (req, res) => {
         const { userId } = req.body;
         const date = new Date().toISOString().split("T")[0]
         const time = new Date().toLocaleTimeString("en-GB");
-        console.log("userid",userId)
+        console.log("userid", userId)
         const existingLogin = await loginRecordModel.findOne({ userId_db: userId, date_db: date, session_db: true })
-        if(!existingLogin) return res.status(400).json({message: `Login session not available for ${userId}`})
-      
+        if (!existingLogin) return res.status(400).json({ message: `Login session not available for ${userId}` })
+
         const end = new Date().getTime()
         const totalSecond = Math.floor((end - existingLogin?.start_db) / 1000);
         const hr = Math.floor(totalSecond / 3600)

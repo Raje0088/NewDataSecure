@@ -1,7 +1,9 @@
 const { viewExcelModel } = require("../models/viewExcelModel")
+const {UserModel} = require("../models/user")
 
 const getTrackerUserToDumpExcel = async (req, res) => {
     try {
+
         const result = await viewExcelModel.find().sort({ date_db: 1 })
         res.status(200).json({ message: `excel import by users`, result })
     } catch (err) {
@@ -31,14 +33,111 @@ const recordTracker = async (req, res) => {
     }
 }
 
-const viewExcelUploadedSheetByUser = async(req,res)=>{
-    try{
+const viewExcelUploadedSheetByUser = async (req, res) => {
+    try {
         const url = req.params.id
-        const path = path.join(__dirname,"uploadExcel")
-    }catch(err){
-        console.log("internal error",err)
-        res.status(500).json({message:"internal error",err:err.message})
+        const path = path.join(__dirname, "uploadExcel")
+    } catch (err) {
+        console.log("internal error", err)
+        res.status(500).json({ message: "internal error", err: err.message })
     }
 }
 
-module.exports = { getTrackerUserToDumpExcel, recordTracker }
+//In SEARCH PAGE GET ALL DUMPY EXCEL SHEET NAME 
+const getExcelRecord = async (req, res) => {
+    try {
+        const { dateFrom, dateTo, district, state, userId, page, assignTo, roleType } = req.query
+        console.log("sdfasfd", req.query,)
+        const pageNum = Number(page)
+        const limit = 100;
+        const skip = (pageNum - 1) * limit;
+
+        let filters = {}
+
+        if (roleType === "Executive") {
+            filters.assignTo_db = assignTo
+        }
+
+        if (dateFrom && dateTo) {
+            filters.date_db = { $gte: dateFrom, $lte: dateTo };  // combine both
+        } else if (dateFrom) {
+            filters.date_db = { $gte: dateFrom };
+        } else if (dateTo) {
+            filters.date_db = { $lte: dateTo };
+        }
+
+        if (district) filters.excel_title_db = district
+        if (state) filters.excel_title_db = state
+        if (userId) filters.userId_db = userId
+        const result = await viewExcelModel.find(filters).sort({ date_db: 1 })
+        console.log("excel", result)
+        res.status(200).json({
+            message: `excel import by users`,
+            page: Number(page),
+            totalCount: result.length,
+            limit,
+            result,
+            db: "Excel",
+        })
+    } catch (err) {
+        console.log("internal error", err)
+        res.status(500).json({ message: "internal error", err: err.message })
+    }
+}
+
+const getAllExcelSheetRecord = async (req, res) => {
+    try {
+        const { assign } = req.query;
+        let result
+
+        console.log("assign",assign)
+        if (assign === "true") {
+            result = await viewExcelModel.find({assignTo_db:{$ne:"NA"}})
+        } else if (assign === "false") {
+            result = await viewExcelModel.find({assignTo_db:"NA"})
+        } else {
+            result = await viewExcelModel.find()
+        }
+        res.status(200).json({ message: "Excel Id Found", result })
+    } catch (err) {
+        console.log('internal error', err)
+        res.status(500).json({ message: "internal error", err: err.message })
+    }
+}
+
+const updateAssignExcelToUser = async(req,res)=>{
+    try{
+        const {title,excelId,assignTo, assignBy} = req.query;
+        const result = await viewExcelModel.updateOne({dumpBy_db:excelId},
+            {
+                $set:{
+                    assignTo_db:assignTo,
+                    assignBy_db:assignBy,
+                }
+            },
+            {
+                new:true,
+            }
+        )
+        console.log(":rer",result,excelId)
+        await UserModel.updateOne({generateUniqueId:assignTo},
+            {
+                $set:{
+                    master_data_db:{
+                        excelId:excelId,
+                    }
+                }
+            },
+            {
+                new:true,
+            }
+        )
+        res.status(200).json({message:`Excel Successfully Assign to ${assignTo}`})
+    }catch(err){
+        res.status(500).json({ message: "internal error", err: err.message })
+        console.log("internal error",err)
+    }
+}
+
+
+module.exports = { getTrackerUserToDumpExcel,updateAssignExcelToUser, recordTracker, getExcelRecord, getAllExcelSheetRecord }

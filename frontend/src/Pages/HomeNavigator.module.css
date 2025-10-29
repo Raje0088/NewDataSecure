@@ -24,3 +24,48 @@
 .nodrag{
   user-select:none;
 }
+.formdiv{
+  position:absolute;
+  width:auto;
+  height:auto;
+  padding:10px;
+  background-color: white;
+  top:0px;
+  top:-20px;
+    /* transform: translateX(-50%) translateY(-10px); */
+  left: 40px;
+  border:1px solid;
+  border-radius: 10px;;
+  display:flex;
+  flex-direction: column;
+  gap:10px;
+
+    /* hidden by default */
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+
+  /* smooth animation */
+  transition: all 0.3s ease;
+
+}
+#form{
+  position:relative;
+  /* background-color: red; */
+  flex-wrap: nowrap;
+  text-wrap:nowrap;
+}
+
+#form:hover .formdiv {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  
+}
+.formdiv a{
+    text-decoration: none;
+}
+.formdiv a:hover{
+    text-decoration: underline;
+    color:inherit
+}

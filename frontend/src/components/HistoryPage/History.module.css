@@ -1,4 +1,6 @@
 .tablecontent{
+    width:100%;
+    height:auto;
     overflow: auto;
     scrollbar-width: thin;
     border-collapse: collapse;

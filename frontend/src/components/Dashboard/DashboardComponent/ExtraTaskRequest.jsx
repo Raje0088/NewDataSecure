@@ -3,57 +3,62 @@ import ReactDOM from "react-dom";
 import styles from "./ExtraTaskRequest.module.css";
 import { useState } from "react";
 const ExtraTaskRequest = ({ onClose, onTaskData }) => {
-  const [selectTask, setSelectTask] = useState("");
-
+  console.log("onTaskData", onTaskData);
   return ReactDOM.createPortal(
     <div className={styles.overlay}>
       <div className={styles.modal}>
         <div className={styles.header}>
-          <p>Date : {onTaskData.date_db}</p>
-          <h2>
-            Request by {onTaskData.assignById_db} To {onTaskData.assignToId_db}{" "}
-          </h2>
+          <h4>
+            {onTaskData.taskMode_db} Task assign by {onTaskData.assignBy_db} To{" "}
+            {onTaskData.assignTo_db}{" "}
+          </h4>
+        </div>
+        <div className={styles.subheader}>
+          <p>Uptil Date : {onTaskData.uptilDate_db}</p>
           <p>Deadline : {onTaskData.deadline_db}</p>
         </div>
 
-        <div style={{ display: "flex", gap: "20px", margin: "10px 0",borderBottom:"1px dotted" }}>
-          <h2>Assign File </h2>
-          <button>open File</button>
+        <div className={styles.subheader}>
+          <h4>Assign File: {onTaskData?.excelId_db?.title ? onTaskData?.excelId_db?.title  : "NA"} </h4>
         </div>
-        <div className={styles.assigntask} style={{ margin: "10px 0"}}>
-          <table>
-            <tr>
-              <th>Asign Task</th>
-              <th>Assign</th>
-              <th>Completed</th>
-            </tr>
-            {onTaskData.assign_task.map((todo, idx) => (
+        {onTaskData.taskMode_db !== "Request" && onTaskData.taskMode_db !== "Regular" ? (
+          <div className={styles.assigntask}  style={{ margin: "10px 0" }}>
+            <table>
               <tr>
-                <td>{todo.title}</td>
-                <td>{todo.num}</td>
-                <td>{todo.completed}</td>
+                <th>Asign Task</th>
+                <th>Assign</th>
+                <th>Completed</th>
               </tr>
-            ))}
-          </table>
-        </div>
-        <div className={styles.assigntask} style={{ margin: "10px 0"}}>
-          <table>
-            <tr>
-              <th>Request</th>
-              <th>Note</th>
-              <th>Assign</th>
-              <th>Completed</th>
-            </tr>
-            {onTaskData.request_task.map((todo, idx) => (
+              {onTaskData.taskObj_db?.map((todo, idx) => (
+                <tr>
+                  <td>{todo.title}</td>
+                  <td>{todo.num}</td>
+                  <td>{todo.completed}</td>
+                </tr>
+              ))}
+            </table>
+          </div>
+        ) : (
+          <div className={styles.assigntask} style={{ margin: "10px 0" }}>
+            <table>
               <tr>
-                <td>{todo.title}</td>
-                <td>{todo.text}</td>
-                <td>{todo.num}</td>
-                <td>{todo.completed}</td>
+                <th>Request</th>
+                <th>Note</th>
+                <th>Assign</th>
+                <th>Completed</th>
               </tr>
-            ))}
-          </table>
-        </div>
+              {onTaskData.taskObj_db?.map((todo, idx) => (
+                <tr>
+                  <td>{todo.title}</td>
+                  <td>{todo.text}</td>
+                  <td>{todo.num}</td>
+                  <td>{todo.completed}</td>
+                </tr>
+              ))}
+            </table>
+          </div>
+        )}
+
         <div className={styles.assigntask}>
           <table>
             <tr>
@@ -61,7 +66,7 @@ const ExtraTaskRequest = ({ onClose, onTaskData }) => {
               <th>Min Price</th>
               <th>Max Price</th>
             </tr>
-            {onTaskData.product_task.map((todo, idx) => (
+            {onTaskData.productPriceRange_db?.map((todo, idx) => (
               <tr>
                 <td>{todo.title}</td>
                 <td>{todo.min}</td>
@@ -70,7 +75,11 @@ const ExtraTaskRequest = ({ onClose, onTaskData }) => {
             ))}
           </table>
         </div>
-        <button onClick={onClose}>Close</button>
+        <div className={styles.btndiv}>
+          <button className={styles.btn} onClick={onClose}>
+            Close
+          </button>
+        </div>
       </div>
     </div>,
     document.getElementById("extra-request-portal")

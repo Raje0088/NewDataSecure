@@ -95,7 +95,7 @@ const setGoals = async (req, res) => {
 }
 
 // USER SCHEDULE GOALS LOCKS AFTER DEADLINE
-cron.schedule('* * * * *', async () => {
+cron.schedule('5 * * * *', async () => {
   const now = new Date();
 
   const result = await scheduleOptimaModel.updateMany({
@@ -125,7 +125,7 @@ const getScheduleOptima = async (req, res) => {
 }
 
 // USER COMPLETED COUNT UPDATE AND SHOW ON FRONTEND 
-cron.schedule("* * * * *", async () => {
+cron.schedule("* 23 * * *", async () => {
   try {
     const today = new Date().toLocaleDateString("en-GB");
     const today_todo = todayDate()

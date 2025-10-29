@@ -36,8 +36,8 @@ const History = (props) => {
   }, [props.onCurrentClientId, props.onRefresh, props.sorts]);
   return (
     <div className={styles.tablecontent}>
-      {/* <div> HISTORY</div> */}
-      <table>
+      
+   { mapClientAllHistory.length > 0 &&  <table>
         <thead>
           <tr>
             <th>DB</th>
@@ -82,7 +82,7 @@ const History = (props) => {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table>}
     </div>
   );
 };

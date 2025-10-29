@@ -1,7 +1,7 @@
 
 const express = require("express")
 const router = express.Router();
-const { rawDataDump, createNewRawDBRecord, getrawDataDump, getrawDataNewFormId, deactivateRawData, activateRawData, filterRawData,rawSampleFile ,rawDBExcelUploadData} = require("../controllers/rawDataController")
+const { rawDataDump, createNewRawDBRecord, getrawDataDump, getrawDataNewFormId, deactivateRawData, activateRawData, filterRawData,rawSampleFile ,rawDBExcelUploadData,getLastGlobalId,gilterDataFromAllDB} = require("../controllers/rawDataController")
 const { findDuplicateRecord,MergeAnddeleteAllRawDBClient, findDuplicateRecordBySearch, mergeAndDelete, deleteRawDBClient,mergeAndDeleteFromAllDB,skipRawDuplicateRecord ,undoSkipDuplicate} = require("../controllers/DuplicateAndMergeDataController")
 const assetPath = require("../utils/assetPath")
 const path= require("path")
@@ -31,9 +31,10 @@ router.get("/stream-insert/:filename", rawDataDump);
 router.get("/search-raw-data/:id", getrawDataDump)
 router.post("/create-raw-data/", createNewRawDBRecord)
 router.get("/get-last-client-id", getrawDataNewFormId)
-router.patch("/deactivate-rawdata/:id", deactivateRawData)
+router.put("/deactivate-rawdata/:id", deactivateRawData)
 router.patch("/activate-rawdata/:id", activateRawData)
-router.get("/filters-rawdata", filterRawData)
+router.post("/filters-rawdata", filterRawData)
+router.post("/filters-alldb", gilterDataFromAllDB)
 router.get("/duplicate-records-rawdata", findDuplicateRecord)
 router.get("/search-duplicate-records-rawdata", findDuplicateRecordBySearch)
 router.post("/mergeanddelete", mergeAndDelete)
@@ -44,6 +45,7 @@ router.get("/excel-data/:id", rawDBExcelUploadData)
 router.get("/mergefrom-alldb", mergeAndDeleteFromAllDB)
 router.post("/skip-ids", skipRawDuplicateRecord)
 router.get("/undo-skip", undoSkipDuplicate)
+router.get("/global-id", getLastGlobalId)
 
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const { clientModel } = require("../models/clientModel.js")
 const { clientHistoryModel } = require("../models/clientModel.js");
 const { rawDataModel } = require("../models/rawDataModel.js")
+const {getNextGobalCounterSequence} = require("../utils/getNextSequence.js")
 
 const lastUpdatedTracker = async (clientId) => {
     try {
@@ -10,7 +11,8 @@ const lastUpdatedTracker = async (clientId) => {
             },
             {
                 $set: {
-                    database_status_db: "client_db",
+                    database_status_db: "Client",
+                    isActive_db:false,
                 }
             },
             {
@@ -46,6 +48,7 @@ const GenerateClientSerialNumber = async (req, res) => {
 }
 const createClient = async (req, res) => {
     try {
+        console.log("we are in client")
         const { clientSerialNo, clientId, userId, bussinessNames, clientName,
             numbers, emails, website,
             addresses, pincode, district,
@@ -54,7 +57,6 @@ const createClient = async (req, res) => {
             expectedDate, remarks, label, completion,
             followUpDate, verifiedBy, tracker, amountDetails, action, followUpTime } = req.body;
         // console.log("req body", amountDetails)
-
         const bussiness1 = bussinessNames[0]?.value || "";
         const bussiness2 = bussinessNames[1]?.value || "";
         const bussiness3 = bussinessNames[2]?.value || "";
@@ -123,13 +125,13 @@ const createClient = async (req, res) => {
             time_db: followUpTime,
             date_db: new Date().toLocaleDateString('en-GB'),
             action_db: action,
-            database_status_db: database || "client_db",
+            database_status_db: database || "Client",
             tracking_db: tracker,
             label_db: label,
             completion_db: completion,
             amountDetails_db: amountDetails,
         })
-
+        getNextGobalCounterSequence("rawSerialNumber")
         lastUpdatedTracker(clientId);
         console.log("Client Details save Successfully", result)
         res.status(201).json({ message: "Client Details save Successfully", result })
@@ -239,7 +241,7 @@ const updateClient = async (req, res) => {
                     time_db: followUpTime,
                     date_db: new Date().toLocaleDateString('en-GB'),
                     action_db: action,
-                    database_status_db: database || "client_db",
+                    database_status_db: database || "Client",
                     label_db: label,
                     completion_db: completion,
                     tracking_db: {
@@ -383,7 +385,7 @@ const searchAllClientsThroughQuery = async (req, res) => {
 const filterClientData = async (req, res) => {
     try {
         const { clientId, clientName, opticalName, address, mobile, email, district, state, country, hot,
-            followUp, demo, installation, product, defaulter, recovery, lost, dateFrom, dateTo, clientType, } = req.query;
+            followUp, demo, installation, product, defaulter, recovery, pincode ,lost, dateFrom, dateTo, clientType, } = req.body;
         const { page = 1 } = req.query;
         const limit = 500;
         const skip = (page - 1) * limit;
@@ -393,6 +395,7 @@ const filterClientData = async (req, res) => {
         const orConditions = [];
 
         if (clientId) filters.client_id = clientId
+         if (pincode) filters.pincode_db = {$in:pincode}
         if (clientName) filters.client_name_db = { $regex: clientName, $options: "i" }
         if (opticalName) {
             orConditions.push(
@@ -440,7 +443,7 @@ const filterClientData = async (req, res) => {
         if (recovery === "true") filters["tracking_db.recovery_db.completed"] = true
         if (lost === "true") filters["tracking_db.lost_db.completed"] = true
         if (dateFrom && dateTo) filters.date_db = { $gte: dateFrom, $lte: dateTo }
-
+         filters.isActive_db = true;
 
         const result = await clientModel.find(filters).sort({ client_id: 1 }).skip(skip).limit(limit)
         const totalCount = await clientModel.countDocuments(filters)
@@ -463,5 +466,20 @@ const CheckClientIdforExcelSheet = async (req, res) => {
     }
 }
 
+const deactivateClientData = async (req, res) => {
+    try {
+        const clientId = req.params.id;
+        const result = await clientModel.findOneAndUpdate(
+            { client_id: clientId, isActive_db: true },
+            { $set: { isActive_db: false } },
+            {new:true},
+        )
 
-module.exports = { searchAllClientsThroughQuery, CheckClientIdforExcelSheet, filterClientData, searchByClientId, GenerateClientSerialNumber, createClient, updateClient, getClientsAssignedToEmployee, getCheckClientIdPresent }
+        res.status(200).json({ message: `${clientId} deactivated successfully`, result })
+    } catch (err) {
+        res.status(500).json({ message: "Error during deactivation", err: err.message });
+        console.log("Error during deactivation", err)
+    }
+}
+
+module.exports = { searchAllClientsThroughQuery, CheckClientIdforExcelSheet, filterClientData, searchByClientId, GenerateClientSerialNumber, createClient, updateClient, getClientsAssignedToEmployee, getCheckClientIdPresent ,deactivateClientData}

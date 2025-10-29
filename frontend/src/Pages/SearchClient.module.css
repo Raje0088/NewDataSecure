@@ -289,7 +289,11 @@ thead th {
   gap: 20px;
   box-sizing: border-box;
 }
-
+#selectAll {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
 .fields {
   width: auto;
   height: auto;
@@ -383,7 +387,9 @@ thead th {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 5px;
 }
+
 .pagebtn button {
   width: auto;
   height: auto;
@@ -482,22 +488,23 @@ tr:nth-child(odd) {
 .menu {
   display: none;
 }
+
 #moreFilter:hover {
   color: rgb(120, 121, 121);
-  cursor:pointer;
+  cursor: pointer;
 }
-.excelclosebtn{
-  width:100%;
-  display:flex;
+.excelclosebtn {
+  width: 100%;
+  display: flex;
   align-items: center;
   justify-content: end;
-  padding:2px;
+  padding: 2px;
 }
 .colorindicator {
   width: 100%;
   display: flex;
   gap: 20px;
-  padding-bottom: 20px;;
+  padding-bottom: 20px;
 }
 .colorindicator > p {
   display: flex;
@@ -513,6 +520,9 @@ tr:nth-child(odd) {
   width: 20px;
   height: 20px;
   border: 1px solid;
+}
+.blurs{
+  filter: blur(4px);
 }
 @media screen and (max-width: 480px) {
   .filters {
@@ -580,11 +590,13 @@ tr:nth-child(odd) {
   }
   .pagebtn {
     width: 80%;
+    height: auto;
     display: flex;
     align-items: center;
     justify-content: end;
     flex-wrap: nowrap;
     gap: 5px;
+    padding: 5px;
   }
   .pagebtn span {
     text-wrap: nowrap;
@@ -613,7 +625,7 @@ tr:nth-child(odd) {
     display: flex;
     flex-direction: column;
     align-items: start;
-    gap:2px;
+    gap: 2px;
   }
   .wrapper h2 {
     text-wrap: nowrap;

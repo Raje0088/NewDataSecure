@@ -107,7 +107,33 @@ const CustomSelect = ({
             openUpward ? styles["upward"] : ""
           }`}
         >
-          {/* {options.map((option, index) => (
+
+          {options.map((option, index) => (
+            <div
+              key={option.value || index}
+              className={styles["dropdown-content"]}
+              style={{
+                backgroundColor: isOptionSelected(option)
+                  ? "#b4ecff"
+                  : "transparent",
+              }}
+              onClick={() => handleCheckboxChange(option)} // ✅ whole div clickable
+            >
+              <div className={styles.checkboxdiv} >
+                <input
+                  type="checkbox"
+                  checked={isOptionSelected(option)}
+                  readOnly // ✅ prevents double toggle
+                />
+                <span>{option.label || option.value}</span>
+              </div>  
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+
+              /* {options.map((option, index) => (
             <span key={index} onClick={() => handleCheckboxChange(option)}>
               <div
                 className={styles["dropdown-content"]}
@@ -129,32 +155,9 @@ const CustomSelect = ({
                 &nbsp;&nbsp;{option.label || option.value}
               </div>
             </span>
-          ))} */}
+          ))} */
 
-          {options.map((option, index) => (
-            <div
-              key={option.value || index}
-              className={styles["dropdown-content"]}
-              style={{
-                backgroundColor: isOptionSelected(option)
-                  ? "#b4ecff"
-                  : "transparent",
-              }}
-              onClick={() => handleCheckboxChange(option)} // ✅ whole div clickable
-            >
-              {isMulti && (
-                <input
-                  type="checkbox"
-                  checked={isOptionSelected(option)}
-                  readOnly // ✅ prevents double toggle
-                />
-              )}
-              <span>{option.label || option.value}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+
     // <div className="dropdown-container" ref={handleOutsideClose}>
     //   <div className="dropdown-header" onClick={toggleDropdown}>
     //     <div className="dropdown-select">

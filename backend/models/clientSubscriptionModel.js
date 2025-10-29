@@ -74,8 +74,8 @@ const clientSubscriptionSchema = new mongoose.Schema({
     action_db: String,
     database_status_db: {
         type: String,
-        enum: ["client_db", "raw_db", "user_db"],
-        default: "client_db",
+        enum: ["Client", "Raw", "User"],
+        default: "User",
     },
     completion_db: {
         receivedProduct: String,
@@ -96,6 +96,12 @@ const clientSubscriptionSchema = new mongoose.Schema({
         referenceId: String,
         mode: String,
     },
+    master_data_db: {
+        state: String,
+        district: String,
+        pincode: String,
+        excelId: String,
+    }
 }, { timestamps: true })
 
 clientSubscriptionSchema.index({ isSubscriber_db: 1 })

@@ -1,16 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { IoMdAddCircleOutline } from "react-icons/io";
 import "./UserAssignTask.css";
 import axios from "axios";
 import TimepickerComponent from "../UI/TimePickerComponent";
 import { base_url } from "../config/config";
+import { AuthContext } from "../context-api/AuthContext";
+import { FaClipboardList } from "react-icons/fa";
 
-const UserAssignTask = ({
-  setAuto,
-  updateFormId,
-  currentFormId,
-  userLoginId,
-}) => {
+const UserAssignTask = ({ executiveId }) => {
+  const { userLoginId } = useContext(AuthContext);
+  const [userHistory, setUserHistory] = useState([]);
   const [addTask, setAddTask] = useState([
     { title: "New Data Add", num: "" },
     { title: "Leads", num: "" },
@@ -24,56 +23,114 @@ const UserAssignTask = ({
     { title: "Follow Up", num: "", text: "" },
     { title: "Product", num: "", text: "" },
   ]);
-  const [addProduct, setAddProduct] = useState([]);
-  const [userFormId, setUserFormId] = useState("");
-  const [checkUpdateIdPresent, setCheckUpdateIdPresent] = useState(false);
   const [deadline, setDeadline] = useState("");
-
-  console.log("addTask--", addTask);
-  // console.log("AddRequest--", addRequest);
-  // console.log("AddProduct--", addProduct);
-  // console.log("setAuto--", setAuto);
-
-  // console.log("ids current->", currentFormId);
-  // console.log("ids update->", updateFormId);
-
-  const isEditMode = Boolean(updateFormId);
+  const [date, setDate] = useState("");
+  const [selectedExcelId, setSelectedExcelId] = useState({
+    title: "",
+    excelId: "",
+  });
+  const [excelIdList, setExcelIdList] = useState([]);
+  const [userAssignProduct, setUserAssignProduct] = useState([]);
 
   useEffect(() => {
-    if (
-      currentFormId &&
-      Array.isArray(setAuto) &&
-      setAuto.length > 0 &&
-      !isEditMode
-    ) {
-      const assignData = setAuto.map((item) => ({
-        title: item.label || "",
-        min: "",
-        max: "",
-      }));
-      setAddProduct(assignData);
-      // console.log("CREATE MODE: addProduct set from setAuto", assignData);
-    }
-  }, [setAuto, currentFormId, isEditMode]);
+    const fetchExcel = async () => {
+      try {
+        const result = await axios.get(`${base_url}/view-excel/get-allexcel`);
+        console.log("excel data", result.data.result);
+        setExcelIdList(result.data.result);
+      } catch (err) {
+        console.log("internal error", err);
+      }
+    };
+    fetchExcel();
+  }, []);
 
-  // Adding task if required =======
+  useEffect(() => {
+    const fetchUserTaskData = async () => {
+      try {
+        // ============ INITIALLY ASSIGN IT ===================
+        const initialResult = await axios.get(
+          `${base_url}/users/search-by-user/${executiveId}`
+        );
+        const user = initialResult.data.result;
+        // const initProd = user.assignProduct.map((item) => ({
+        //   title: item.label,
+        //   min: 0,
+        //   max: 0,
+        // }));
+
+        // ============ IF EXIST DATA THEN DISPLAY IT ===================
+        const result = await axios.get(
+          `${base_url}/users/get-userForm/${executiveId}`
+        );
+        console.log("user task details", result.data.result, executiveId);
+        const data = result.data.result;
+
+        const updatedTasks = addTask.map((task, index) => {
+          const apiTask = data?.assign_task[index];
+          return {
+            ...task,
+            num: apiTask && apiTask.num !== "" ? apiTask.num : 0,
+          };
+        });
+        setAddTask(updatedTasks);
+
+        const updatedRequest = addRequest.map((task, index) => {
+          const req = data?.request_task[index];
+          return {
+            ...task,
+            text: req && req.text !== "" ? req.text : 0,
+            num: req && req.num !== "" ? req.num : 0,
+          };
+        });
+        setAddRequest(updatedRequest);
+
+        if (!data?.product_task) {
+          const initProd = user.assignProduct.map((item) => ({
+            title: item.label,
+            min: 0,
+            max: 0,
+          }));
+          setUserAssignProduct(initProd);
+          console.log("initProd", initProd);
+        } else {
+          const updatedProd = data?.product_task.map((item, index) => {
+            const prod = data?.product_task[index];
+            return {
+              ...item,
+              min: prod && prod.min !== 0 ? prod.min : 0,
+              max: prod && prod.max !== 0 ? prod.max : 0,
+            };
+          });
+          console.log("updatedRod", updatedProd);
+          setUserAssignProduct(updatedProd);
+        }
+      } catch (err) {
+        console.log("internal error", err);
+      }
+    };
+    fetchUserTaskData();
+  }, [executiveId]);
+
   const handleaddTask = () => {
-    // console.log("add");
     setAddTask([...addTask, { title: "", num: "" }]);
     console.log("task-", addTask);
+  };
+  const handleExcel = (id) => {
+    console.log("yo yo", id);
+    const title = excelIdList.find((item) => item.dumpBy_db === id);
+    setSelectedExcelId({ title: title.excel_title_db, excelId: id });
   };
   const handleTitleChange = (index, field, value) => {
     const updated = [...addTask];
     updated[index][field] = value;
     setAddTask(updated);
-    // console.log("addTask", addTask);
   };
   const handleRemoveTask = (index) => {
     const updated = [...addTask];
     updated.splice(index, 1);
     setAddTask(updated);
   };
-  // Adding Request if required =======
   const handleAddRquestTask = () => {
     setAddRequest([...addRequest, { title: "", num: "", text: "" }]);
   };
@@ -81,7 +138,6 @@ const UserAssignTask = ({
     const updated = [...addRequest];
     updated[index][field] = value;
     setAddRequest(updated);
-    // console.log("addRequest", addRequest);
   };
   const handleRemoveRequest = (index) => {
     const updated = [...addRequest];
@@ -89,183 +145,25 @@ const UserAssignTask = ({
     setAddRequest(updated);
   };
 
-  // Adding Product if required =======
-
   const handleProductTitleChange = (index, field, value) => {
-    const update = [...addProduct];
+    const update = [...userAssignProduct];
     update[index][field] = value;
-    setAddProduct(update);
-    // console.log("addProduct", addProduct);
+    setUserAssignProduct(update);
   };
 
-  const isFieldCheck = () => {
-    for (let task of addTask) {
-      if (!task.title.trim() || !task.num) {
-        return false;
-      }
-    }
-    for (let task of addRequest) {
-      const numStr = String(task.num || "").trim();
-      if (!task.title.trim() || numStr === "" || Number(numStr) < 0) {
-        return false;
-      }
-    }
-
-    for (let task of addProduct) {
-      if (
-        !task.title.trim() ||
-        !task.min ||
-        !task.max ||
-        task.min < 0 ||
-        task.max < 0
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  };
-
-  const fetchId = async () => {
-    try {
-      const getUpdateFormId = await axios.get(
-        `${base_url}/users/searchuser-task-form/${updateFormId}`
-      );
-      // console.log("Fetched data:", getUpdateFormId.data.result);
-
-      if (getUpdateFormId.data.result) {
-        const result = getUpdateFormId.data.result;
-        setUserFormId(result.generateUniqueId);
-        setCheckUpdateIdPresent(result.generateUniqueId);
-        setAddTask(result.assign_task);
-
-        const safeRequests = result.request_task.map((item) => ({
-          title: item?.title || "",
-          num: String(item?.num ?? ""),
-          text: item?.text || "",
-        }));
-        setAddRequest(safeRequests);
-
-        const rawProducts = result.product_task.map((item) => ({
-          title: item?.title || "",
-          min: item?.min || "",
-          max: item?.max || "",
-        }));
-        setAddProduct(rawProducts);
-
-        // console.log("Editing mode: setAddProduct from backend", rawProducts);
-      } else {
-        setUserFormId(null);
-      }
-    } catch (err) {
-      console.error("Error fetching data by `updateFormId`", err);
-      setUserFormId(null);
-    }
-  };
-  useEffect(() => {
-    if (isEditMode && updateFormId) {
-      console.log("Calling fetchId with updateFormId:", updateFormId);
-      fetchId();
-    }
-
-    // Handle the case where the updateFormId doesn't match checkUpdateIdPresent
-    if (checkUpdateIdPresent !== updateFormId) {
-      console.log(
-        "The updateFormId doesn't match, clearing task fields and assigning values to addProduct"
-      );
-
-      // Clear addTask and addRequest fields
-      setAddTask([
-        { title: "New Data Add", num: "" },
-        { title: "Leads", num: "" },
-        { title: "Training", num: "" },
-        { title: "Follow Up", num: "" },
-      ]);
-      setAddRequest([
-        { title: "New data add", num: "", text: "" },
-        { title: "Leads", num: "", text: "" },
-        { title: "Training", num: "", text: "" },
-        { title: "Follow Up", num: "", text: "" },
-        { title: "Product", num: "", text: "" },
-      ]);
-
-      // Assign addProduct from setAuto
-      if (Array.isArray(setAuto) && setAuto.length > 0) {
-        const assignData = setAuto.map((item) => ({
-          title: item.label || "",
-          min: "",
-          max: "",
-        }));
-        setAddProduct(assignData);
-        console.log("CLEAR MODE: addProduct set from setAuto", assignData);
-      }
-    }
-  }, [checkUpdateIdPresent, updateFormId, setAuto, isEditMode]);
-
-  // const handleSaveUser = async (e) => {
-  //   e.preventDefault();
-
-  //   if (!isFieldCheck()) {
-  //     alert(
-  //       "Please fill all fields correctly. No empty or negative values allowed."
-  //     );
-  //     return;
-  //   }
-
-  //   try {
-  //     if (checkupdateIdPresent === updateFormId) {
-  //       const result = await axios.put(
-  //         `${base_url}/users/updateuser-task-form/${updateFormId}`,
-  //         {
-  //           assignTask: addTask,
-  //           requestTask: addRequest,
-  //           productTask: addProduct,
-  //         }
-  //       );
-  //       console.log("user Task updated", result.data);
-  //       alert("user data update");
-  //     } else {
-  //       const result = await axios.post(
-  //         "${base_url}/users/user-task-form",
-  //         {
-  //           assignTask: addTask,
-  //           requestTask: addRequest,
-  //           productTask: addProduct,
-  //           generateUniqueId: currentFormId || updateFormId,
-  //         }
-  //       );
-  //       // setUpdateFormId(null);
-  //       console.log("User Task Saved", result.data);
-  //       alert("user data save");
-  //     }
-  //   } catch (err) {
-  //     console.log("User not save", err);
-  //   }
-  // };
-
-  // Save User Data
   const handleSaveUser = async (e) => {
-    e.preventDefault();
-
-    if (!isFieldCheck()) {
-      alert(
-        "Please fill all fields correctly. No empty or negative values allowed."
-      );
-      return;
-    }
-
+    console.log("dfasdfd");
     try {
-      const result = await axios.post(
-        `${base_url}/users/user-task-form`,
-        {
-          assignTask: addTask,
-          requestTask: addRequest,
-          productTask: addProduct,
-          assignById: userLoginId,
-          assignToId: updateFormId,
-          deadline: deadline,
-        }
-      );
+      const result = await axios.post(`${base_url}/users/user-task-form`, {
+        assignTask: addTask,
+        requestTask: addRequest,
+        productTask: userAssignProduct,
+        assignById: userLoginId,
+        assignToId: executiveId,
+        deadline: deadline,
+        date: date,
+        selectedExcel: selectedExcelId,
+      });
       console.log("User Task Saved", result.data);
       alert("User data saved successfully!");
     } catch (err) {
@@ -273,7 +171,6 @@ const UserAssignTask = ({
       alert("Error saving user data. Please try again.");
     }
   };
-  // console.log("ids bolte", userFormId, updateFormId);
 
   const handleTimeChange = (time) => {
     if (time === "HH:MM:SS AM/PM") {
@@ -282,18 +179,53 @@ const UserAssignTask = ({
     console.log("time blte", time);
     setDeadline(time);
   };
+
+  const handleOpenUserHistory = async () => {
+    try {
+      const result = await axios.get(
+        `${base_url}/users/get-userForm-history/${executiveId}`
+      );
+      setUserHistory(result.data.result);
+      console.log("user Assign Task History", result.data.result);
+    } catch (err) {
+      console.log("internal error", err);
+    }
+  };
+
   return (
     <div className="userassign-task-body">
       <div className="userassign-task-main">
         <div className="heading-div">
-          <h3>Setting</h3>
+          <h2>Setting </h2>
+          <h2> UserId-{executiveId}</h2>
         </div>
-        <div className="assign-file-div">
-          <h3>Assign File</h3>
-          <input type="file" />
-        </div>
+        {/* <div className="assign-file-div">
+          <h4>Assign File</h4>
+          <select
+            id=""
+            value={selectedExcelId.excelId}
+            onChange={(e) => {
+              handleExcel(e.target.value);
+            }}
+          >
+            <option value="">--Select--</option>
+            {excelIdList.map((item, idx) => (
+              <option value={item.dumpBy_db}>{item.excel_title_db}</option>
+            ))}
+          </select>
+        </div> */}
         <div className="assign-task-div">
-          <h3>Assign Task</h3>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            {" "}
+            <h4>Assign Task</h4>
+          </div>
+
           <div className="assign-task-item-div">
             <div className="assign-task-item">
               <p>{addTask[0].title}</p>
@@ -301,43 +233,49 @@ const UserAssignTask = ({
                 type="number"
                 value={addTask[0].num}
                 onChange={(e) => {
-                  handleTitleChange(0, "num", e.target.value);
+                  const value = Math.max(0, e.target.value);
+                  handleTitleChange(0, "num", value);
                 }}
                 className="userassigntask-input"
               />
             </div>
             <div className="assign-task-item">
-              <p>{addTask[1].title}</p>{" "}
+              <p>{addTask[1]?.title}</p>{" "}
               <input
                 type="number"
-                value={addTask[1].num}
-                onChange={(e) => handleTitleChange(1, "num", e.target.value)}
-                className="userassigntask-input"
-              />
-            </div>
-            <div className="assign-task-item">
-              <p>{addTask[2].title}</p>{" "}
-              <input
-                type="number"
-                value={addTask[2].num}
+                value={addTask[1]?.num}
                 onChange={(e) => {
-                  handleTitleChange(2, "num", e.target.value);
+                  const value = Math.max(0, e.target.value);
+                  handleTitleChange(1, "num", value);
                 }}
                 className="userassigntask-input"
               />
             </div>
             <div className="assign-task-item">
-              <p>{addTask[3].title}</p>{" "}
+              <p>{addTask[2]?.title}</p>{" "}
               <input
                 type="number"
-                value={addTask[3].num}
+                value={addTask[2]?.num}
                 onChange={(e) => {
-                  handleTitleChange(3, "num", e.target.value);
+                  const value = Math.max(0, e.target.value);
+                  handleTitleChange(2, "num", value);
                 }}
                 className="userassigntask-input"
               />
             </div>
-
+            <div className="assign-task-item">
+              <p>{addTask[3]?.title}</p>{" "}
+              <input
+                type="number"
+                value={addTask[3]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleTitleChange(3, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+            </div>
+            {/* 
             {addTask.slice(4).map((item, idx) => {
               const index = idx + 4;
               return (
@@ -374,36 +312,47 @@ const UserAssignTask = ({
                   </p>
                 </div>
               );
-            })}
-            <div className="assign-task-item">
+            })} */}
+            {/* <div className="assign-task-item">
               <p>
                 <IoMdAddCircleOutline
                   onClick={handleaddTask}
                   className="add-icon"
                 />
               </p>
-            </div>
+            </div> */}
           </div>
         </div>
+
         <div className="request-div">
-          <h3>Request</h3>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            {" "}
+            <h4>Request</h4>
+          </div>
           <div className="request-item-div">
             <div className="request-item">
-              <h3></h3> <h3></h3> <h3>Note</h3>
+              <h4></h4> <h4></h4> <h4>Note</h4>
             </div>
             <div className="request-item">
-              <p>{addRequest[0].title}</p>
+              <p>{addRequest[0]?.title}</p>
               <input
                 type="number"
-                value={addRequest[0].num}
+                value={addRequest[0]?.num}
                 onChange={(e) => {
-                  handleRequestTitleChange(0, "num", e.target.value);
+                  const value = Math.max(0, e.target.value);
+                  handleRequestTitleChange(0, "num", value);
                 }}
                 className="userassigntask-input"
               />
               <input
                 type="text"
-                value={addRequest[0].text}
+                value={addRequest[0]?.text}
                 onChange={(e) => {
                   handleRequestTitleChange(0, "text", e.target.value);
                 }}
@@ -411,18 +360,19 @@ const UserAssignTask = ({
               />
             </div>
             <div className="request-item">
-              <p>{addRequest[1].title}</p>
+              <p>{addRequest[1]?.title}</p>
               <input
                 type="number"
-                value={addRequest[1].num}
+                value={addRequest[1]?.num}
                 onChange={(e) => {
-                  handleRequestTitleChange(1, "num", e.target.value);
+                  const value = Math.max(0, e.target.value);
+                  handleRequestTitleChange(1, "num", value);
                 }}
                 className="userassigntask-input"
               />
               <input
                 type="text"
-                value={addRequest[1].text}
+                value={addRequest[1]?.text}
                 onChange={(e) => {
                   handleRequestTitleChange(1, "text", e.target.value);
                 }}
@@ -430,18 +380,19 @@ const UserAssignTask = ({
               />
             </div>
             <div className="request-item">
-              <p>{addRequest[2].title}</p>
+              <p>{addRequest[2]?.title}</p>
               <input
                 type="number"
-                value={addRequest[2].num}
+                value={addRequest[2]?.num}
                 onChange={(e) => {
-                  handleRequestTitleChange(2, "num", e.target.value);
+                  const value = Math.max(0, e.target.value);
+                  handleRequestTitleChange(2, "num", value);
                 }}
                 className="userassigntask-input"
               />
               <input
                 type="text"
-                value={addRequest[2].text}
+                value={addRequest[2]?.text}
                 onChange={(e) => {
                   handleRequestTitleChange(2, "text", e.target.value);
                 }}
@@ -449,18 +400,19 @@ const UserAssignTask = ({
               />
             </div>
             <div className="request-item">
-              <p>{addRequest[3].title}</p>
+              <p>{addRequest[3]?.title}</p>
               <input
                 type="number"
-                value={addRequest[3].num}
+                value={addRequest[3]?.num}
                 onChange={(e) => {
-                  handleRequestTitleChange(3, "num", e.target.value);
+                  const value = Math.max(0, e.target.value);
+                  handleRequestTitleChange(3, "num", value);
                 }}
                 className="userassigntask-input"
               />
               <input
                 type="text"
-                value={addRequest[3].text}
+                value={addRequest[3]?.text}
                 onChange={(e) => {
                   handleRequestTitleChange(3, "text", e.target.value);
                 }}
@@ -468,25 +420,26 @@ const UserAssignTask = ({
               />
             </div>
             <div className="request-item">
-              <p>{addRequest[4].title}</p>
+              <p>{addRequest[4]?.title}</p>
               <input
                 type="number"
-                value={addRequest[4].num}
+                value={addRequest[4]?.num}
                 onChange={(e) => {
-                  handleRequestTitleChange(4, "num", e.target.value);
+                  const value = Math.max(0, e.target.value);
+                  handleRequestTitleChange(4, "num", value);
                 }}
                 className="userassigntask-input"
               />
               <input
                 type="text"
-                value={addRequest[4].text}
+                value={addRequest[4]?.text}
                 onChange={(e) => {
                   handleRequestTitleChange(4, "text", e.target.value);
                 }}
                 className="userassigntask-input align-input"
               />
             </div>
-            {addRequest.slice(5).map((item, idx) => {
+            {/* {addRequest.slice(5).map((item, idx) => {
               const index = idx + 5;
               return (
                 <div className="request-item" style={{ position: "relative" }}>
@@ -538,25 +491,35 @@ const UserAssignTask = ({
                   onClick={handleAddRquestTask}
                 />
               </p>
-            </div>
+            </div> */}
           </div>
         </div>
         <div className="product-file-div">
-          <h3>Product</h3>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            {" "}
+            <h4>Product</h4>
+          </div>
           <div className="product-item-div">
             <div className="product-item">
-              <h3></h3> <h3>Min</h3>
-              <h3>Max</h3>
+              <h4></h4> <h4>Min</h4>
+              <h4>Max</h4>
             </div>
 
-            {addProduct.map((item, idx) => (
+            {(userAssignProduct || []).map((item, idx) => (
               <div className="product-item" key={idx}>
                 <p>{item.title}</p>
                 <input
                   type="number"
                   value={item.min}
                   onChange={(e) => {
-                    handleProductTitleChange(idx, "min", e.target.value);
+                    const value = Number(Math.max(0, e.target.value));
+                    handleProductTitleChange(idx, "min", value);
                   }}
                   className="userassigntask-input"
                 />
@@ -564,7 +527,8 @@ const UserAssignTask = ({
                   type="number"
                   value={item.max}
                   onChange={(e) => {
-                    handleProductTitleChange(idx, "max", e.target.value);
+                    const value = Math.max(0, Number(e.target.value));
+                    handleProductTitleChange(idx, "max", value);
                   }}
                   className="userassigntask-input "
                 />
@@ -573,21 +537,184 @@ const UserAssignTask = ({
           </div>
         </div>
         <div className="task-save-btn">
-          <span>
-            Deadline:
+          {/* <div></div> */}
+          {/* <span>
+            <label htmlFor="">Date</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => {
+                setDate(e.target.value);
+              }}
+            />
+          </span> */}
+          {/* <span>
+            <label htmlFor="">Deadline</label>
             <TimepickerComponent onTimeChange={handleTimeChange} />
-          </span>
+          </span> */}
+          <FaClipboardList
+            style={{ color: "blue", fontSize: "20px" }}
+            onClick={() => {
+              handleOpenUserHistory(executiveId);
+            }}
+          />
           <button
             onClick={(e) => {
               handleSaveUser(e);
             }}
           >
-            {updateFormId && updateFormId === userFormId
-              ? "Update"
-              : "Create Task"}
+            Save
           </button>
         </div>
       </div>
+      {userHistory.length > 0 && (
+        <div className="userHistory">
+          <div className="userHistoryinner">
+            <div className="header">
+              <h4>User Task Assign History</h4>
+            </div>
+
+            <div className="tablediv">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Sr No</th>
+                    <th>Assign By</th>
+                    <th>Assign To</th>
+                    <th>Assign Task</th>
+                    <th>Request Task</th>
+                    <th>Product Task</th>
+                    {/* <th>Excel ID</th> */}
+                    <th>Created At</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {userHistory.length > 0 ? (
+                    userHistory.map((item, index) => (
+                      <tr key={index}>
+                        <td>{index + 1}</td>
+                        <td>{item.assignById_db}</td>
+                        <td>{item.assignToId_db}</td>
+
+                        {/* Assign Task */}
+                        <td>
+                          {item.assign_task && item.assign_task.length > 0 ? (
+                            <ul style={{ margin: 0, paddingLeft: "15px" }}>
+                              {item.assign_task.map((task, i) => (
+                                <div
+                                  key={i}
+                                  style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "70% 30%",
+                                  }}
+                                >
+                                  <li htmlFor="">{task.title}</li>
+                                  <label htmlFor=""> {task.num}</label>
+                                </div>
+                              ))}
+                            </ul>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+
+                        {/* Request Task */}
+                        <td>
+                          {item.request_task && item.request_task.length > 0 ? (
+                            <ul style={{ margin: 0, paddingLeft: "15px" }}>
+                              <div
+                                style={{
+                                  width:"100%",
+                                  display: "grid",
+                                  gridTemplateColumns: "40% 45% 15%",
+                                }}
+                              >
+                                <label htmlFor=""></label>
+                                <label htmlFor="">text</label>
+                                <label htmlFor="">Num</label>
+                              </div>
+                              {item.request_task.map((req, i) => (
+                                <div
+                                  key={i}
+                                  style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "40% 45% 15%",
+                                  }}
+                                >
+                                  <li htmlFor="">{req.title}</li>
+                                  <label
+                                    htmlFor=""
+                                    style={{ textWrap: "wrap" }}
+                                  >
+                                    {req.text}
+                                  </label>
+                                  <label htmlFor="">{req.num}</label>
+                                </div>
+                              ))}
+                            </ul>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+
+                        {/* Product Task */}
+                        <td>
+                          {item.product_task && item.product_task.length > 0 ? (
+                            <ul style={{ margin: 0, paddingLeft: "15px" }}>
+                              {item.product_task.map((p, i) => (
+                                <div
+                                  key={i}
+                                  style={{
+                                    width:"100%",
+                                    display: "grid",
+                                    gridTemplateColumns: "40% 30% 30%",
+                                  }}
+                                >
+                                  <label htmlFor="">{p.title}</label>
+                                  <label htmlFor="">Min: {p.min}</label>
+                                  <label htmlFor="">Max: {p.max}</label>
+                                </div>
+                              ))}
+                            </ul>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+
+                        {/* Excel ID */}
+                        {/* <td >
+                          <div style={{display:"flex",flexDirection:"column"}}>
+                            <label htmlFor=""> {item.excelId_db.title} </label>
+                          <label htmlFor=""> {item.excelId_db.excelId}</label>
+                          </div>
+                        </td> */}
+
+                        {/* Dates */}
+                        <td>{new Date(item.createdAt).toLocaleString()}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="8">No history found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="btndivH" style={{ paddingRight: "20px" }}>
+              <button
+                onClick={() => {
+                  setUserHistory([]);
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

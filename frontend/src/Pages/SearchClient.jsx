@@ -10,21 +10,27 @@ import { base_url } from "../config/config";
 import { useContext } from "react";
 import { AuthContext } from "../context-api/AuthContext";
 import { IoMenu } from "react-icons/io5";
-import { setSelectedData, setField } from "../redux/Redux";
+import { setSelectedData, setField, resetAll } from "../redux/Redux";
 import { useSelector, useDispatch } from "react-redux";
+import { MdOutlineDownloadDone } from "react-icons/md";
+import { IoHourglassOutline } from "react-icons/io5";
+import MessagePortal from "../UI/MessagePortal.jsx";
+import CustomSelect from "../components/CustomSelect.jsx";
 
 const SearchClient = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  const state = location.state;
   const selectedDataRedux = useSelector(
     (state) => state.filterStore.selectedData
   );
   const filterRawRedux = useSelector((state) => state.filterStore.filterRaw);
   // console.log("state", location.state);
   const { DumpId, DumpBy, DumpURL } = location.state || {};
-  // console.log("yo", DumpId, DumpBy, DumpURL);
-  const { userLoginId } = useContext(AuthContext);
+  // console.log("yo", selectedDataRedux, filterRawRedux);
+  const { userLoginId, userPermissions } = useContext(AuthContext);
+  console.log("=====", userLoginId, userPermissions);
   const [searchFrom, setSearchFrom] = useState("");
   const [filterRaw, setFilterRaw] = useState({
     clientType: "",
@@ -48,6 +54,7 @@ const SearchClient = () => {
     dateFrom: "",
     dateTo: "",
     pincode: "",
+    userId: "",
   });
   const [newData, setNewData] = useState({
     clientId: "",
@@ -91,27 +98,40 @@ const SearchClient = () => {
     district: "",
     state: "",
     country: "",
-    pincode: "",
+    pincode: [],
   });
   const [page, setPage] = useState(1);
   const [stateList, setStateList] = useState([]);
   const [districtList, setDistrictList] = useState([]);
   const [openSlide, setOpenSlide] = useState(false);
-  const [fetchedRawData, setFetchedRawData] = useState([]);
+  // const [fetchedRawData, setFetchedRawData] = useState([]);
+  const [fetchedRawData, setFetchedRawData] = useState({
+    result: [],
+    totalCount: 0,
+    page: 1,
+    limit: 50,
+    db: "",
+    message: "",
+    counts: { r: 0, c: 0, u: 0 },
+  });
+
   const [totalPageSize, setTotalPageSize] = useState(1);
   const [selectedClients, setSelectedClients] = useState([]);
   const [redirectClientId, setRediretClientId] = useState(null);
   const [getPresentDistrict, setGetPresentDistrict] = useState([]);
-  const [getPresentState, setGetPresentState] = useState([]);
+  const [pincodeOptionList, setPincodeOptionList] = useState([]);
+  const [selectPincodeOption, setSelectPincodeOption] = useState([]);
   const [getPresentCountry, setGetPresentCountry] = useState([]);
+  const [selectedExcelName, setSelectedExcelName] = useState(null);
   const [getPresentPlace, setGetPresentPlace] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [excelData, setExcelData] = useState([]);
   const [searchDuplicateRecord, setSearchDuplicateRecord] = useState([]);
   const [duplicateRecord, setDuplicateRecord] = useState([]);
   const [tempRecord, setTempRecord] = useState([]);
-  const [trueClientSetter, setTrueClientSetter] = useState([]);
-  const [trueUserSetter, setTrueUserSetter] = useState([]);
+  const [tempCount, setTempCount] = useState({ raw: 0, client: 0, user: 0 });
+  const [remStatus, setRemStatus] = useState("ALL");
+  const [isRemMode, setIsRemMode] = useState(false);
   const [totalDone, setTotalDone] = useState(0);
   const [duplicateCheckerThreeDB, setDuplicateCheckerThreeDB] = useState([]);
   const [isSearch, setIsSearch] = useState(false);
@@ -120,20 +140,25 @@ const SearchClient = () => {
   const [isSearchDuplicate, setIsSearchDuplicate] = useState(false);
   const [toggleMenu, setToggleMenu] = useState(false);
   const [groupIndexTracker, setGroupIndexTracker] = useState(null);
+  const [disableSetter, setDisableSetter] = useState(null);
+  const [isAssignTaskMode, setIsAssignTaskMode] = useState(false);
+  const [assignTaskUserId, setAssignTaskUserId] = useState(null);
+  const [msg, setMsg] = useState("");
 
-  // useEffect(() => {
-  //   const fetchExcelData = async () => {
-  //     try {
-  //       const workbook = xlsx.read(excelData, { type: "array" });
-  //       const sheetName = workbook.SheetNames[0];
-  //       const worksheet = workbook.Sheets[sheetName];
-  //       const json = xlsx.utils.sheet_to_json(worksheet);
-  //     } catch (err) {
-  //       console.log("internal error", err);
-  //     }
-  //   };
-  //   fetchExcelData();
-  // }, [DumpBy]);
+  useEffect(() => {
+    if (!state) return;
+    if (state.from === "assignTask") {
+      setIsAssignTaskMode(true);
+      console.log("beforestate", state);
+      setFilterRaw((prev) => ({
+        ...prev,
+        clientType: state.assignType,
+      }));
+      console.log("after state", state.assignType);
+      setDisableSetter(state.assignType);
+      setAssignTaskUserId(state.userId);
+    }
+  }, [state]);
 
   useEffect(() => {
     const showExcelData = async () => {
@@ -157,13 +182,26 @@ const SearchClient = () => {
     }
   }, [DumpId]);
   // console.log("yo", trueSetter);
+
   useEffect(() => {
     const fetchPlaces = async () => {
       const result = await axios.get(`${base_url}/pincode/fetch-pincode-rawdb`);
-      // console.log("place", result.data);
+      console.log("place", result.data);
       setGetPresentPlace(result.data);
     };
-    fetchPlaces();
+    if (userPermissions.roleType === "Executive") {
+      let obj = {};
+      obj.districtArray = userPermissions.masterData.district?.map(
+        (item) => item.name
+      );
+      obj.stateArray = userPermissions.masterData.state;
+      obj.excelArray = userPermissions.masterData.excelId;
+      obj.pincodeArray = userPermissions.masterData.pincode;
+      setGetPresentPlace(obj);
+      console.log("getPresentPlace", obj);
+    } else {
+      fetchPlaces();
+    }
   }, []);
 
   useEffect(() => {
@@ -190,8 +228,56 @@ const SearchClient = () => {
     fetch();
   }, [filterRaw.state, filterRaw.district]);
 
+  useEffect(() => {
+    if (isAssignTaskMode || state?.from === "assignTask") return;
+
+    if (!filterRawRedux || !selectedDataRedux || !selectedDataRedux.result) {
+      console.log("Redux empty — you may call API here to fetch data");
+      return;
+    }
+    if (!selectedDataRedux || Object.keys(selectedDataRedux).length === 0)
+      return;
+
+    console.log("Redux Selected Data:", selectedDataRedux);
+    setFilterRaw((prev) => ({
+      ...prev,
+      clientType: filterRawRedux.clientType,
+    }));
+
+    // Sync Redux into local state
+    if (!selectedDataRedux || !selectedDataRedux.result) return;
+
+    console.log("Redux Selected Data ready:", selectedDataRedux);
+    setFetchedRawData({
+      result: selectedDataRedux.result || [],
+      totalCount: selectedDataRedux.totalCount || 0,
+      page: selectedDataRedux.page || 1,
+      limit: selectedDataRedux.limit || 50,
+      db: selectedDataRedux.db || "",
+      message: selectedDataRedux.message || "",
+      counts: {
+        r: selectedDataRedux.counts?.r,
+        c: selectedDataRedux.counts?.c,
+        u: selectedDataRedux.counts?.u,
+      },
+    });
+
+    setSearchFrom(selectedDataRedux.db || "");
+    setPage(selectedDataRedux.page || 1);
+    setTotalPageSize(
+      Math.ceil(
+        (selectedDataRedux.totalCount || 0) / (selectedDataRedux.limit || 50)
+      )
+    );
+  }, [filterRawRedux, selectedDataRedux, isAssignTaskMode]);
+
   const handleSearchInput = (name, value) => {
-    // console.log(name, value);
+    console.log(name, value);
+    if (name === "clientType") {
+      setDisableSetter(value);
+    }
+    setFetchedRawData([]);
+    setIsRemMode(false);
     setFilterRaw((prev) => ({
       ...prev,
       [name]: value,
@@ -203,69 +289,140 @@ const SearchClient = () => {
       [name]: value ? true : null,
     }));
   };
-  // console.log("filterraw", filterRaw);
+
   useEffect(() => {
-    console.log("Updated Selected Data:", selectedDataRedux);
-    console.log("Updated Filter Raw:", filterRawRedux);
-    setFilterRaw((prev) => ({
-      ...prev,
-      clientType: filterRawRedux.clientType,
-    }));
-    setFetchedRawData(selectedDataRedux);
-    setSearchFrom(selectedDataRedux.db);
-    setPage(selectedDataRedux.page);
-    const totalPageSizes = Math.ceil(
-      selectedDataRedux.totalCount / selectedDataRedux.limit
-    );
-    setTotalPageSize(totalPageSizes);
-  }, [selectedDataRedux, filterRawRedux]);
+    if (!isRemMode) return;
+    let filters;
+    if (remStatus === "PENDING") {
+      filters = tempRecord?.result?.filter((item) => item.status_db === false);
+    } else if (remStatus === "COMPLETED") {
+      filters = tempRecord?.result?.filter((item) => item.status_db === true);
+    } else {
+      filters = tempRecord?.result;
+    }
+    const data = {
+      ...tempRecord,
+      result: filters,
+      totalCount: filters?.length,
+    };
+    console.log("I am the culprit bro", remStatus);
+    setFetchedRawData(data);
+    setSelectedClients([]);
+  }, [remStatus]);
+
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const result = await axios.get(
+          `${base_url}/pincode/assign-task-pincode`,
+          {
+            params: { district: filterRaw.district },
+          }
+        );
+        const pin = result.data.result;
+        const pincode = pin.map((p) => ({ label: p, value: p }));
+        setPincodeOptionList(pincode);
+        console.log("ddddddddddddddd", result.data.result);
+      } catch (err) {
+        console.log("internal error", err);
+      }
+    };
+    if (filterRaw.district) {
+      fetch();
+    }
+  }, [filterRaw.district]);
 
   const handleSearchData = async (pageNum = 1) => {
     if (!filterRaw.clientType) return alert("please select user");
     setIsLoading(true);
     try {
       let result;
+      if (filterRaw.clientType === "ALL") {
+        result = await axios.post(`${base_url}/raw-data/filters-alldb`, {
+          ...filterRaw,
+          page: pageNum,
+          userId: userLoginId,
+        });
+      }
       if (filterRaw.clientType === "RAW") {
         console.log("raw");
-        result = await axios.get(
-          // `${base_url}/raw-data/filters-rawdata`,
-          `${base_url}/raw-data/filters-rawdata`,
-          {
-            params: { ...filterRaw, page: pageNum },
-          }
-        );
+        result = await axios.post(`${base_url}/raw-data/filters-rawdata`, {
+          ...filterRaw,
+          page: pageNum,
+        });
       }
       if (filterRaw.clientType === "CLIENT") {
-        result = await axios.get(
-          // `${base_url}/clients/filter-clientdata`,
-          `${base_url}/clients/filter-clientdata`,
-          {
-            params: { ...filterRaw, page: pageNum },
-          }
-        );
+        result = await axios.post(`${base_url}/clients/filter-clientdata`, {
+          ...filterRaw,
+          page: pageNum,
+        });
         console.log("client", filterRaw.clientType, result);
       }
       if (filterRaw.clientType === "USER") {
         console.log("user");
-        result = await axios.get(
+        result = await axios.post(
           `${base_url}/subscribe-user/filter-clientsubscribedata`,
+          {
+            ...filterRaw,
+            page: pageNum,
+          }
+        );
+      }
+      if (filterRaw.clientType === "REMINDER") {
+        console.log("reminder");
+        if (!filterRaw.dateFrom || !filterRaw.dateTo) {
+          setIsLoading(false);
+          return alert("Date From and To must require");
+        }
+        result = await axios.get(
+          `${base_url}/remainders/get-assign-remainder`,
           {
             params: { ...filterRaw, page: pageNum },
           }
         );
+        setTempRecord(result.data);
       }
+
+      if (filterRaw.clientType === "EXCEL") {
+        console.log("reminder");
+        result = await axios.get(`${base_url}/view-excel/get-excel-record`, {
+          params: {
+            ...filterRaw,
+            page: pageNum,
+            assignTo: userLoginId,
+            roleType: userPermissions.roleType,
+          },
+        });
+        setTempRecord(result.data);
+      }
+
       console.log("fetched Raw data", result.data);
-      setFetchedRawData(result.data);
+
       setSearchFrom(result.data.db);
       setPage(pageNum);
       const totalPageSizes = Math.ceil(
         result.data.totalCount / result.data.limit
       );
+      setFetchedRawData(result.data);
       setTotalPageSize(totalPageSizes);
       setIsMigrate(false);
       setIsDuplicate(false);
       setIsSearch(true);
-      dispatch(setSelectedData(result.data));
+      dispatch(
+        setSelectedData({
+          result: result.data.result,
+          totalCount: result.data.totalCount,
+          page: result.data.page,
+          limit: result.data.limit,
+          db: result.data.db,
+          message: result.data.message,
+          counts: {
+            r: result.data?.counts?.r,
+            c: result.data?.counts?.c,
+            u: result.data?.counts?.u,
+          },
+        })
+      );
       dispatch(setField({ key: "clientType", value: filterRaw.clientType }));
     } catch (err) {
       console.log("internal error", err);
@@ -277,9 +434,9 @@ const SearchClient = () => {
     setIsLoading(true);
     if (onClickDuplicateButton === "true") {
       await handleUndoSkip();
-      console.log("before---------------------")
+      console.log("before---------------------");
     }
-    console.log("after---------------------------")
+    console.log("after---------------------------");
     try {
       let result;
       if (
@@ -419,6 +576,7 @@ const SearchClient = () => {
       setSelectedClients(allClientIds);
     }
   };
+
   const handleViewExcelSelectAll = () => {
     if (selectedClients.length === excelData?.length) {
       setSelectedClients([]);
@@ -442,6 +600,11 @@ const SearchClient = () => {
     try {
       if (selectedClients.length === 0) {
         return alert("Please select at least one client");
+      }
+      if (filterRaw.clientType === "ALL") {
+        navigate("/client-page", {
+          state: { selectedClients, from: "searchClient" },
+        });
       }
       if (filterRaw.clientType === "CLIENT" || filterRaw.clientType === "RAW") {
         navigate("/client-page", {
@@ -494,17 +657,49 @@ const SearchClient = () => {
     }
   };
 
-  const handleDelete = async (clientId) => {
-    console.log("client delte", clientId);
+  const handleDelete = async (clientId, db) => {
+    console.log("client delte", clientId, db);
     const isConfirmed = window.confirm(
       "Are you sure you want to delete this record?"
     );
     if (!isConfirmed) return;
     try {
-      const result = await axios.delete(
-        `${base_url}/raw-data/duplicate-delete/${clientId}`
-      );
-      alert("successfully removed");
+      let result;
+      if (db === "Raw") {
+        result = await axios.put(
+          `${base_url}/raw-data/deactivate-rawdata/${clientId}`
+        );
+      } else if (db === "Client") {
+        result = await axios.put(
+          `${base_url}/clients/deactivate-client/${clientId}`
+        );
+      } else if (db === "User") {
+        result = await axios.put(
+          `${base_url}/subscribe-user/deactivate-user/${clientId}`
+        );
+      }
+      console.log("result", result);
+      alert(result.data.message);
+      await handleSearchData();
+    } catch (err) {
+      console.log("internal error", err);
+    }
+  };
+  const handleDuplicateDelete = async (clientId, db) => {
+    console.log("client delte", clientId, db);
+    const isConfirmed = window.confirm(
+      "Are you sure you want to delete this record?"
+    );
+    if (!isConfirmed) return;
+    try {
+      let result;
+      if (db === "Raw") {
+        result = await axios.put(
+          `${base_url}/raw-data/deactivate-rawdata/${clientId}`
+        );
+      }
+      console.log("result", result);
+      alert(result.data.message);
       await handleDuplicateData("false");
     } catch (err) {
       console.log("internal error", err);
@@ -570,7 +765,10 @@ const SearchClient = () => {
   };
   const handleFetchRawDataClose = () => {
     setFetchedRawData([]);
+    setTempRecord([]);
+    setTempCount({ raw: 0, client: 0, user: 0 });
     setSelectedClients([]);
+    dispatch(resetAll());
   };
   const handleDuplicateRecordClose = () => {
     setDuplicateRecord([]);
@@ -923,10 +1121,12 @@ const SearchClient = () => {
 
   const handleSkipIds = async (grpIndex, group) => {
     console.log("checker", grpIndex, groupIndexTracker);
-    const idsInThisGroup = group.filter((item)=> selectedClients.includes(item.client_id)).map((item)=> item.client_id)
+    const idsInThisGroup = group
+      .filter((item) => selectedClients.includes(item.client_id))
+      .map((item) => item.client_id);
 
-    if(idsInThisGroup.length === 0){
-      alert("Please select clients in this group")
+    if (idsInThisGroup.length === 0) {
+      alert("Please select clients in this group");
       return;
     }
 
@@ -989,12 +1189,96 @@ const SearchClient = () => {
 
   //   setSelectedClients([]);
   // };
+  const handleChangePincodeSelectOption = (selectedOption) => {
+    setSelectPincodeOption(selectedOption);
+    console.log("dafsd", selectedOption);
+    setFilterRaw((prev) => ({
+      ...prev,
+      pincode: selectedOption.map((item) => item.value),
+    }));
+  };
+  console.log("ffdfas", filterRaw.pincode);
+  const handleAssignTask = async () => {
+    try {
+      const result = await axios.post(
+        `${base_url}/task/task-assign`,
+        {
+          assignBy: userLoginId,
+          assignTo: assignTaskUserId,
+          taskType: filterRaw.clientType,
+          selectedClients: selectedClients,
+          target: state.target,
+          taskMode: state.taskMode,
+          productRange: state.userProduct,
+          date: state.date,
+          deadline: state.deadline,
+          district: filterRaw.district,
+          state: filterRaw.state,
+          pincode: filterRaw.pincode,
+          excelId:
+            filterRaw.clientType === "EXCEL"
+              ? { title: selectedExcelName, excelId: selectedClients }
+              : { title: "NA", excelId: "NA" },
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
+      if (result.data.askConfirmation) {
+        const confirm = window.confirm(
+          `${result.data.message} Do you want to assign it again?`
+        );
+        if (confirm) {
+          const forceResult = await axios.post(
+            `${base_url}/task/task-assign`,
+            {
+              assignBy: userLoginId,
+              assignTo: assignTaskUserId,
+              taskType: filterRaw.clientType,
+              selectedClients: selectedClients,
+              target: state.target,
+              taskMode: state.taskMode,
+              productRange: state.userProduct,
+              date: state.date,
+              deadline: state.deadline,
+              district: filterRaw.district,
+              state: filterRaw.state,
+              pincode: filterRaw.pincode,
+              excelId:
+                filterRaw.clientType === "EXCEL"
+                  ? { title: selectedExcelName, excelId: selectedClients }
+                  : { title: "NA", excelId: "NA" },
+              forceAssign: true,
+            },
+            { headers: { "Content-Type": "application/json" } }
+          );
+          alert(forceResult.data.message);
+        }
+      } else {
+        alert(result.data.message);
+      }
+      console.log("Task Assign Successfully", result);
+    } catch (err) {
+      console.log("internal error", err);
+      // setMsg(err.response.data.message);
+    }
+    dispatch(resetAll());
+  };
+
+  console.log("---------------", selectedClients, msg);
   return (
     <div className={styles.main}>
       <div className={styles.content}>
         <div className={styles.headers}>
-          <h2>Search Page</h2>
+          {!isAssignTaskMode ? (
+            <h2>Search Page</h2>
+          ) : (
+            <h2 style={{ background: "", padding: "2px" }}>
+              Task Mode On :{" "}
+              <span style={{ background: "", padding: "2px", color: "red" }}>
+                {assignTaskUserId}
+              </span>
+            </h2>
+          )}
         </div>
         <div className={styles.menu}>
           <IoMenu
@@ -1029,9 +1313,12 @@ const SearchClient = () => {
               }}
             >
               <option value="">--select</option>
+              <option value="ALL">ALL</option>
               <option value="RAW">RAW</option>
               <option value="CLIENT">CLIENT</option>
               <option value="USER">USER</option>
+              <option value="REMINDER">REMINDER</option>
+              <option value="EXCEL">EXCEL</option>
             </select>
           </span>
           <span className={styles.fields}>
@@ -1043,6 +1330,9 @@ const SearchClient = () => {
               onChange={(e) => {
                 handleSearchInput("clientId", e.target.value);
               }}
+              disabled={
+                disableSetter === "EXCEL" || disableSetter === "REMINDER"
+              }
             />
           </span>
           <span className={styles.fields}>
@@ -1051,6 +1341,9 @@ const SearchClient = () => {
               name=""
               id=""
               value={filterRaw.product}
+              disabled={
+                disableSetter === "EXCEL" || disableSetter === "REMINDER"
+              }
               onChange={(e) => {
                 handleSearchInput("product", e.target.value);
               }}
@@ -1088,6 +1381,9 @@ const SearchClient = () => {
             <input
               type="text"
               value={filterRaw.opticalName}
+              disabled={
+                disableSetter === "EXCEL" || disableSetter === "REMINDER"
+              }
               onChange={(e) => {
                 handleSearchInput("opticalName", e.target.value);
               }}
@@ -1099,6 +1395,9 @@ const SearchClient = () => {
               className={styles["custom-input"]}
               type="text"
               value={filterRaw.mobile}
+              disabled={
+                disableSetter === "EXCEL" || disableSetter === "REMINDER"
+              }
               onChange={(e) => {
                 handleSearchInput("mobile", e.target.value);
               }}
@@ -1109,6 +1408,9 @@ const SearchClient = () => {
             <input
               type="text"
               value={filterRaw.clientName}
+              disabled={
+                disableSetter === "EXCEL" || disableSetter === "REMINDER"
+              }
               onChange={(e) => {
                 handleSearchInput("clientName", e.target.value);
               }}
@@ -1118,6 +1420,9 @@ const SearchClient = () => {
             <label htmlFor="">Place</label>
             <input
               type="text"
+              disabled={
+                disableSetter === "EXCEL" || disableSetter === "REMINDER"
+              }
               value={filterRaw.address}
               onChange={(e) => {
                 handleSearchInput("address", e.target.value);
@@ -1128,6 +1433,9 @@ const SearchClient = () => {
             <label htmlFor="">Email</label>
             <input
               type="email"
+              disabled={
+                disableSetter === "EXCEL" || disableSetter === "REMINDER"
+              }
               value={filterRaw.email}
               onChange={(e) => {
                 handleSearchInput("email", e.target.value);
@@ -1139,6 +1447,7 @@ const SearchClient = () => {
             <select
               name=""
               id=""
+              disabled={disableSetter === "REMINDER"}
               value={filterRaw.state}
               onChange={(e) => {
                 handleSearchInput("state", e.target.value);
@@ -1157,6 +1466,7 @@ const SearchClient = () => {
             <select
               name=""
               id=""
+              disabled={disableSetter === "REMINDER"}
               value={filterRaw.district}
               onChange={(e) => {
                 handleSearchInput("district", e.target.value);
@@ -1175,6 +1485,9 @@ const SearchClient = () => {
             <select
               name=""
               id=""
+              disabled={
+                disableSetter === "EXCEL" || disableSetter === "REMINDER"
+              }
               value={filterRaw.country}
               onChange={(e) => {
                 handleSearchInput("country", e.target.value);
@@ -1195,6 +1508,9 @@ const SearchClient = () => {
                 type="checkbox"
                 id="hot"
                 className={styles["checkbox-input"]}
+                disabled={
+                  disableSetter === "EXCEL" || disableSetter === "REMINDER"
+                }
                 checked={filterRaw.hot === true}
                 onChange={(e) => {
                   handleCheckboxInput("hot", e.target.checked);
@@ -1209,6 +1525,9 @@ const SearchClient = () => {
                 type="checkbox"
                 id="followup"
                 className={styles["checkbox-input"]}
+                disabled={
+                  disableSetter === "EXCEL" || disableSetter === "REMINDER"
+                }
                 checked={filterRaw.followUp === true}
                 onChange={(e) => {
                   handleCheckboxInput("followUp", e.target.checked);
@@ -1223,6 +1542,9 @@ const SearchClient = () => {
                 type="checkbox"
                 id="demo"
                 className={styles["checkbox-input"]}
+                disabled={
+                  disableSetter === "EXCEL" || disableSetter === "REMINDER"
+                }
                 checked={filterRaw.demo === true}
                 onChange={(e) => {
                   handleCheckboxInput("demo", e.target.checked);
@@ -1237,6 +1559,9 @@ const SearchClient = () => {
                 type="checkbox"
                 id="installation"
                 className={styles["checkbox-input"]}
+                disabled={
+                  disableSetter === "EXCEL" || disableSetter === "REMINDER"
+                }
                 checked={filterRaw.installation === true}
                 onChange={(e) => {
                   handleCheckboxInput("installation", e.target.checked);
@@ -1251,6 +1576,9 @@ const SearchClient = () => {
                 type="checkbox"
                 id="defaulter"
                 className={styles["checkbox-input"]}
+                disabled={
+                  disableSetter === "EXCEL" || disableSetter === "REMINDER"
+                }
                 checked={filterRaw.defaulter === true}
                 onChange={(e) => {
                   handleCheckboxInput("defaulter", e.target.checked);
@@ -1265,6 +1593,9 @@ const SearchClient = () => {
                 type="checkbox"
                 id="recovery"
                 className={styles["checkbox-input"]}
+                disabled={
+                  disableSetter === "EXCEL" || disableSetter === "REMINDER"
+                }
                 checked={filterRaw.recovery === true}
                 onChange={(e) => {
                   handleCheckboxInput("recovery", e.target.checked);
@@ -1279,6 +1610,9 @@ const SearchClient = () => {
                 type="checkbox"
                 id="lost"
                 className={styles["checkbox-input"]}
+                disabled={
+                  disableSetter === "EXCEL" || disableSetter === "REMINDER"
+                }
                 checked={filterRaw.lost === true}
                 onChange={(e) => {
                   handleCheckboxInput("lost", e.target.checked);
@@ -1289,14 +1623,26 @@ const SearchClient = () => {
           {openSlide && (
             <span className={styles.fields}>
               <label htmlFor="pincode">Pincode </label>
-              <input
-                type="text"
-                id="pincode"
-                value={filterRaw.pincode}
-                onChange={(e) => {
-                  handleSearchInput("pincode", e.target.value);
-                }}
-              />
+              {isAssignTaskMode ? (
+                <CustomSelect
+                  options={pincodeOptionList}
+                  value={selectPincodeOption}
+                  isMulti={true}
+                  onChange={handleChangePincodeSelectOption}
+                />
+              ) : (
+                <input
+                  type="text"
+                  id="pincode"
+                  disabled={
+                    disableSetter === "EXCEL" || disableSetter === "REMINDER"
+                  }
+                  value={filterRaw.pincode}
+                  onChange={(e) => {
+                    handleSearchInput("pincode", e.target.value);
+                  }}
+                />
+              )}
             </span>
           )}
         </div>
@@ -1510,16 +1856,22 @@ const SearchClient = () => {
         )} */}
       </div>
       <div className={styles.btn}>
-        <button
-          onClick={() => {
-            window.location.reload();
-          }}
-        >
-          Reset
-        </button>
-        <button>Print</button>
-        <button onClick={handleExcelDownload}>Excel</button>
-        <button onClick={handleRedirectClient}>View</button>
+        {!isAssignTaskMode && (
+          <button
+            onClick={() => {
+              window.location.reload();
+            }}
+          >
+            Reset
+          </button>
+        )}
+        {!isAssignTaskMode && <button>Print</button>}
+        {!isAssignTaskMode && (
+          <button onClick={handleExcelDownload}>Excel</button>
+        )}
+        {!isAssignTaskMode && (
+          <button onClick={handleRedirectClient}>View</button>
+        )}
         <button
           onClick={() => {
             handleSearchData();
@@ -1529,161 +1881,547 @@ const SearchClient = () => {
           Search
         </button>
 
-        <button
-          onClick={() => {
-            handleAndMergeInThreeDB(1);
-            setIsMigrate(true);
-          }}
-        >
-          Migrate
-        </button>
-        <button
-          onClick={() => {
-            setIsDuplicate(true);
-            setIsSearchDuplicate(true);
-            handleDuplicateData("true");
-          }}
-        >
-          Duplicate Tracker
-        </button>
+        {!isAssignTaskMode && (
+          <button
+            onClick={() => {
+              handleAndMergeInThreeDB(1);
+              setIsMigrate(true);
+            }}
+          >
+            Migrate
+          </button>
+        )}
+        {!isAssignTaskMode && (
+          <button
+            onClick={() => {
+              setIsDuplicate(true);
+              setIsSearchDuplicate(true);
+              handleDuplicateData("true");
+            }}
+          >
+            Duplicate Tracker
+          </button>
+        )}
+        {isAssignTaskMode && selectedClients.length > 0 && (
+          <button
+            onClick={() => {
+              handleAssignTask();
+            }}
+          >
+            Assign Task
+          </button>
+        )}
       </div>
 
       <div className={styles["content-body"]}>
-        {/* SEARCHING RECORD FROM RAW DB */}
-        {!isLoading && fetchedRawData.result?.length > 0 && (
-          <div className={styles.tablediv}>
-            <div className={styles["table-heading"]}>
-              <h2 className={styles["heading-text"]}>{searchFrom}</h2>
-            </div>
-            <div className={styles["table-subheading"]}>
-              <h4>
-                Total Record Found :{" "}
-                {fetchedRawData.limit < fetchedRawData.totalCount
-                  ? `${
-                      Math.ceil(
-                        fetchedRawData.totalCount / fetchedRawData.limit
-                      ) === fetchedRawData.page
-                        ? fetchedRawData.totalCount -
-                          fetchedRawData.limit * (fetchedRawData.page - 1)
-                        : fetchedRawData.limit
-                    } of ${fetchedRawData.totalCount} `
-                  : `${fetchedRawData.totalCount} of ${fetchedRawData.totalCount} `}{" "}
-              </h4>
-              <div className={styles.pagebtn}>
+        {/* SEARCHING EXCEL*/}
+        {!isLoading &&
+          filterRaw.clientType === "EXCEL" &&
+          fetchedRawData.result?.length > 0 && (
+            <div className={styles.tablediv}>
+              <div className={styles["table-heading"]}>
+                <h2 className={styles["heading-text"]}>{searchFrom}</h2>
+              </div>
+              <div className={styles["table-subheading"]}>
+                <h4>Total Record Found : {fetchedRawData.result.length}</h4>
+                {/* <select name="" id="" value={remStatus} onChange={(e)=>{setRemStatus(e.target.value)}}>
+                <option value="ALL">All</option>
+                <option value="COMPLETED">COMPLETED</option>
+                <option value="PENDING">PENDING</option>
+              </select> */}
+                <div className={styles.pagebtn}>
+                  <button
+                    disabled={page === 1}
+                    onClick={() => {
+                      handleSearchData(page - 1);
+                    }}
+                  >
+                    Prev
+                  </button>
+                  <span>
+                    {" "}
+                    {page} of {totalPageSize}
+                  </span>
+                  <button
+                    disabled={page === totalPageSize}
+                    onClick={() => {
+                      handleSearchData(page + 1);
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+              <div className={styles["table-content"]}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Select</th>
+                      <th>SrNo</th>
+                      <th>UserId</th>
+                      <th>Date</th>
+                      <th>Time</th>
+                      <th>Excel Name</th>
+                      <th>Excel Id</th>
+                      <th>Total Record</th>
+                      {/* <th>View</th> */}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(fetchedRawData?.result).map((item, idx) => [
+                      <tr
+                      // onClick={() => {
+                      //   handleCheckboxChange(item.dumpBy_db);
+                      // }}
+                      >
+                        <td>
+                          <input
+                            type="radio"
+                            className={styles["checkbox-input-table"]}
+                            checked={selectedClients.includes(item.dumpBy_db)}
+                            onChange={() => {
+                              setSelectedExcelName(item.excel_title_db);
+                              setSelectedClients(item.dumpBy_db);
+                            }}
+                            name="excelId"
+                          />
+                        </td>
+
+                        <td>{idx + 1}</td>
+                        <td>{item.userId_db}</td>
+                        <td>{item.date_db}</td>
+                        <td>{item.time_db}</td>
+                        <td>{item.excel_title_db}</td>
+                        <td>{item.dumpBy_db}</td>
+                        <td>{item.total_db}</td>
+                        {/* <td>click</td> */}
+                      </tr>,
+                    ])}
+                  </tbody>
+                </table>
+              </div>
+              <div className={styles.closediv}>
                 <button
-                  disabled={page === 1}
+                  className={styles.custombtn}
                   onClick={() => {
-                    handleSearchData(page - 1);
+                    handleFetchRawDataClose();
                   }}
                 >
-                  Prev
-                </button>
-                <span>
-                  {" "}
-                  {page} of {totalPageSize}
-                </span>
-                <button
-                  disabled={page === totalPageSize}
-                  onClick={() => {
-                    handleSearchData(page + 1);
-                  }}
-                >
-                  Next
+                  Close
                 </button>
               </div>
             </div>
-            <div className={styles["table-content"]}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>
-                      <span id={styles.selectAll}>
-                        <input
-                          type="checkbox"
-                          className={styles["checkbox-input-table"]}
-                          checked={
-                            selectedClients?.length ===
-                              fetchedRawData.result?.length &&
-                            fetchedRawData.result?.length > 0
+          )}
+        {/* SEARCHING REMINDER*/}
+        {!isLoading &&
+          filterRaw.clientType === "REMINDER" &&
+          fetchedRawData.result?.length > 0 && (
+            <div className={styles.tablediv}>
+              <div className={styles["table-heading"]}>
+                <h2 className={styles["heading-text"]}>{searchFrom}</h2>
+              </div>
+              <div className={styles["table-subheading"]}>
+                <h4>Total Record Found : {fetchedRawData.result.length}</h4>
+                <select
+                  name=""
+                  id=""
+                  value={remStatus}
+                  onChange={(e) => {
+                    setRemStatus(e.target.value);
+                  }}
+                >
+                  <option value="ALL">All</option>
+                  <option value="COMPLETED">COMPLETED</option>
+                  <option value="PENDING">PENDING</option>
+                </select>
+                <div className={styles.pagebtn}>
+                  <button
+                    disabled={page === 1}
+                    onClick={() => {
+                      handleSearchData(page - 1);
+                    }}
+                  >
+                    Prev
+                  </button>
+                  <span>
+                    {" "}
+                    {page} of {totalPageSize}
+                  </span>
+                  <button
+                    disabled={page === totalPageSize}
+                    onClick={() => {
+                      handleSearchData(page + 1);
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+              <div className={styles["table-content"]}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>
+                        <span id={styles.selectAll}>
+                          <input
+                            type="checkbox"
+                            className={styles["checkbox-input-table"]}
+                            checked={
+                              selectedClients?.length ===
+                                fetchedRawData.result?.length &&
+                              fetchedRawData.result?.length > 0
+                            }
+                            onChange={handleSelectAll}
+                          />
+                          Select All ({selectedClients.length})
+                        </span>
+                      </th>
+                      <th>SrNo</th>
+                      <th>Stage</th>
+                      <th>Client Id</th>
+                      <th>Client Name</th>
+                      <th>Date</th>
+                      <th>Time</th>
+                      <th>Action</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(fetchedRawData?.result).map((item, idx) => [
+                      <tr
+                        onClick={() => {
+                          handleCheckboxChange(item.client_id);
+                        }}
+                      >
+                        <td>
+                          <input
+                            type="checkbox"
+                            className={styles["checkbox-input-table"]}
+                            checked={selectedClients.includes(item.client_id)}
+                            onChange={() => {
+                              handleCheckboxChange(item.client_id);
+                            }}
+                          />
+                        </td>
+
+                        <td>{idx + 1}</td>
+                        <td style={{ fontWeight: "bold" }}>{item.stage_db}</td>
+                        <td>{item.client_id}</td>
+                        <td>{item.client_name_db}</td>
+                        <td>{item.date_db}</td>
+                        <td>{item.time_db}</td>
+                        <td>{item.operation_db}</td>
+                        <td>
+                          {item.status_db == true ? (
+                            <MdOutlineDownloadDone />
+                          ) : (
+                            <IoHourglassOutline />
+                          )}
+                        </td>
+                      </tr>,
+                    ])}
+                  </tbody>
+                </table>
+              </div>
+              <div className={styles.closediv}>
+                <button
+                  className={styles.custombtn}
+                  onClick={() => {
+                    handleFetchRawDataClose();
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+
+        {/* SEARCHING RECORD FROM RAW DB */}
+
+        {!isLoading &&
+          filterRaw.clientType !== "REMINDER" &&
+          filterRaw.clientType !== "EXCEL" &&
+          fetchedRawData.result?.length > 0 && (
+            <div className={styles.tablediv}>
+              <div className={styles["table-heading"]}>
+                <h2 className={styles["heading-text"]}>{searchFrom}</h2>
+              </div>
+              <div className={styles["table-subheading"]}>
+                <h4>
+                  Total Record Found :{" "}
+                  {fetchedRawData.limit < fetchedRawData.totalCount
+                    ? `${
+                        Math.ceil(
+                          fetchedRawData.totalCount / fetchedRawData.limit
+                        ) === fetchedRawData.page
+                          ? fetchedRawData.totalCount -
+                            fetchedRawData.limit * (fetchedRawData.page - 1)
+                          : fetchedRawData.limit
+                      } of ${fetchedRawData.totalCount} `
+                    : `${fetchedRawData.totalCount} of ${fetchedRawData.totalCount} `}{" "}
+                </h4>
+                {fetchedRawData.db === "All Database" && (
+                  <h4>
+                    [ Raw-
+                    {fetchedRawData?.counts?.r}, Client-
+                    {fetchedRawData?.counts?.c}, User-
+                    {fetchedRawData?.counts?.u}]
+                  </h4>
+                )}
+                <div className={styles.pagebtn}>
+                  <button
+                    disabled={page === 1}
+                    onClick={() => {
+                      handleSearchData(page - 1);
+                    }}
+                  >
+                    Prev
+                  </button>
+                  <span>
+                    {" "}
+                    {page} of {totalPageSize}
+                  </span>
+                  <button
+                    disabled={page === totalPageSize}
+                    onClick={() => {
+                      handleSearchData(page + 1);
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles["table-content"]}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>
+                        <span id={styles.selectAll}>
+                          <input
+                            type="checkbox"
+                            className={styles["checkbox-input-table"]}
+                            disabled={!fetchedRawData?.result?.some((item,idx)=>(item.master_data_db.assignTo === userLoginId))
+                                &&
+                              userLoginId !== "SA"
+                            }
+                            checked={
+                              selectedClients?.length ===
+                                fetchedRawData.result?.length &&
+                              fetchedRawData.result?.length > 0
+                            }
+                            onChange={handleSelectAll}
+                          />
+                          Select All ({selectedClients.length})
+                        </span>
+                      </th>
+                      <th>Status</th>
+                      <th>SrNo</th>
+                      <th>Client Id</th>
+                      <th>Shop Name</th>
+                      <th>Client Name</th>
+                      <th>Email 1</th>
+                      <th>Email 2</th>
+                      <th>Email 3</th>
+                      <th>Mobile 1</th>
+                      <th>Mobile 2</th>
+                      <th>Mobile 3 </th>
+                      <th>Address</th>
+                      <th>Pincode</th>
+                      <th>District</th>
+                      <th>State</th>
+                      <th>Delete</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(fetchedRawData?.result
+                      ? fetchedRawData?.result
+                      : excelData || []
+                    ).map((item, idx) => [
+                      <tr
+                        onClick={() => {
+                          handleCheckboxChange(item.client_id);
+                        }}
+                      >
+                        <td>
+                          <input
+                            type="checkbox"
+                            disabled={
+                              item.master_data_db.assignTo !== userLoginId &&
+                              userLoginId !== "SA"
+                            }
+                            className={styles["checkbox-input-table"]}
+                            checked={selectedClients.includes(item.client_id)}
+                            onChange={() => {
+                              handleCheckboxChange(item.client_id);
+                            }}
+                          />
+                        </td>
+                        <td
+                          style={
+                            item.database_status_db === "User"
+                              ? {
+                                  backgroundColor: "#00ff2673",
+                                  fontWeight: "bold",
+                                }
+                              : item.database_status_db === "Client"
+                              ? {
+                                  backgroundColor: "orange",
+                                  fontWeight: "bold",
+                                }
+                              : { fontWeight: "bold" }
                           }
-                          onChange={handleSelectAll}
-                        />
-                        Select All ({selectedClients.length})
-                      </span>
-                    </th>
-                    <th>SrNo</th>
-                    <th>Client Id</th>
-                    <th>Shop Name</th>
-                    <th>Client Name</th>
-                    <th>Email 1</th>
-                    <th>Email 2</th>
-                    <th>Email 3</th>
-                    <th>Mobile 1</th>
-                    <th>Mobile 2</th>
-                    <th>Mobile 3 </th>
-                    <th>Address</th>
-                    <th>Pincode</th>
-                    <th>District</th>
-                    <th>State</th>
-                    <th>Delete</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(fetchedRawData?.result
-                    ? fetchedRawData?.result
-                    : excelData || []
-                  ).map((item, idx) => [
-                    <tr
-                      onClick={() => {
-                        handleCheckboxChange(item.client_id);
-                      }}
-                    >
-                      <td>
-                        <input
-                          type="checkbox"
-                          className={styles["checkbox-input-table"]}
-                          checked={selectedClients.includes(item.client_id)}
-                          onChange={() => {
-                            handleCheckboxChange(item.client_id);
-                          }}
-                        />
-                      </td>
-                      <td>{idx + 1}</td>
-                      <td>{item.client_id}</td>
-                      <td>{item.optical_name1_db}</td>
-                      <td>{item.client_name_db}</td>
-                      <td>{item.email_1_db}</td>
-                      <td>{item.email_2_db}</td>
-                      <td>{item.email_3_db}</td>
-                      <td>{item.mobile_1_db}</td>
-                      <td>{item.mobile_2_db}</td>
-                      <td>{item.mobile_3_db}</td>
-                      <td>{item.address_1_db}</td>
-                      <td>{item.pincode_db}</td>
-                      <td>{item.district_db}</td>
-                      <td>{item.state_db}</td>
-                      <td>
-                        <AiTwotoneDelete
-                          onClick={() => {
-                            handleDelete(item.client_id);
-                          }}
-                        />
-                      </td>
-                    </tr>,
-                  ])}
-                </tbody>
-              </table>
+                        >
+                          {item.database_status_db}
+                        </td>
+                        <td>{idx + 1 + (page - 1) * fetchedRawData.limit}</td>
+                        <td>{item.client_id}</td>
+                        <td>{item.optical_name1_db}</td>
+                        <td
+                          className={
+                            item.master_data_db.assignTo !== userLoginId &&
+                            userLoginId !== "SA"
+                              ? styles.blurs
+                              : ""
+                          }
+                        >
+                          {item.client_name_db}
+                        </td>
+                        <td
+                          className={
+                            item.master_data_db.assignTo !== userLoginId &&
+                            userLoginId !== "SA"
+                              ? styles.blurs
+                              : ""
+                          }
+                        >
+                          {item.email_1_db}
+                        </td>
+                        <td
+                          className={
+                            item.master_data_db.assignTo !== userLoginId &&
+                            userLoginId !== "SA"
+                              ? styles.blurs
+                              : ""
+                          }
+                        >
+                          {item.email_2_db}
+                        </td>
+                        <td
+                          className={
+                            item.master_data_db.assignTo !== userLoginId &&
+                            userLoginId !== "SA"
+                              ? styles.blurs
+                              : ""
+                          }
+                        >
+                          {item.email_3_db}
+                        </td>
+                        <td
+                          className={
+                            item.master_data_db.assignTo !== userLoginId &&
+                            userLoginId !== "SA"
+                              ? styles.blurs
+                              : ""
+                          }
+                        >
+                          {item.mobile_1_db}
+                        </td>
+                        <td
+                          className={
+                            item.master_data_db.assignTo !== userLoginId &&
+                            userLoginId !== "SA"
+                              ? styles.blurs
+                              : ""
+                          }
+                        >
+                          {item.mobile_2_db}
+                        </td>
+                        <td
+                          className={
+                            item.master_data_db.assignTo !== userLoginId &&
+                            userLoginId !== "SA"
+                              ? styles.blurs
+                              : ""
+                          }
+                        >
+                          {item.mobile_3_db}
+                        </td>
+                        <td>{item.address_1_db}</td>
+                        <td
+                          className={
+                            item.master_data_db.assignTo !== userLoginId &&
+                            userLoginId !== "SA"
+                              ? styles.blurs
+                              : ""
+                          }
+                        >
+                          {item.pincode_db}
+                        </td>
+                        <td
+                          className={
+                            item.master_data_db.assignTo !== userLoginId &&
+                            userLoginId !== "SA"
+                              ? styles.blurs
+                              : ""
+                          }
+                        >
+                          {item.district_db}
+                        </td>
+                        <td
+                          className={
+                            item.master_data_db.assignTo !== userLoginId &&
+                            userLoginId !== "SA"
+                              ? styles.blurs
+                              : ""
+                          }
+                        >
+                          {item.state_db}
+                        </td>
+                        <td>
+                          <AiTwotoneDelete
+                            onClick={() => {
+                              handleDelete(
+                                item.client_id,
+                                item.database_status_db
+                              );
+                            }}
+                          />
+                        </td>
+                      </tr>,
+                    ])}
+                  </tbody>
+                </table>
+              </div>
+              <div>
+                <h5>
+                  Note: Records in Client/User DBs are excluded from Raw DB
+                  view.
+                </h5>
+              </div>
+              <div className={styles.closediv}>
+                <div className={styles.colorindicator}>
+                  <p>
+                    <span style={{ background: "#00ff2673" }}></span> User{" "}
+                  </p>
+                  <p>
+                    <span style={{ background: "orange" }}></span> Client{" "}
+                  </p>
+                  <p>
+                    <span style={{ background: "white" }}></span> Raw{" "}
+                  </p>
+                </div>
+                <button
+                  className={styles.custombtn}
+                  onClick={() => {
+                    handleFetchRawDataClose();
+                  }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
-            <div className={styles.closediv}>
-              <button
-                className={styles.custombtn}
-                onClick={handleFetchRawDataClose}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
+          )}
 
         {/* FINDING DUPLICATE BY SEARCHING RECORDS */}
         {!isLoading && searchDuplicateRecord.result?.length > 0 && (
@@ -1694,7 +2432,7 @@ const SearchClient = () => {
             <div className={styles["table-subheading"]}>
               <h4>
                 Total Duplicate Record Found in Raw :{" "}
-                {`${searchDuplicateRecord.result?.length} of ${searchDuplicateRecord.totalRawRecord}`}
+                {`${searchDuplicateRecord.result?.length} of ${searchDuplicateRecord.result?.length} from Raw- ${searchDuplicateRecord.totalRawRecord}`}
               </h4>
               <div className={styles.pagebtn}>
                 <button
@@ -2125,7 +2863,10 @@ const SearchClient = () => {
                       <td>
                         <AiTwotoneDelete
                           onClick={() => {
-                            handleDelete(item.client_id);
+                            handleDuplicateDelete(
+                              item.client_id,
+                              item.database_status_db
+                            );
                           }}
                         />
                       </td>
@@ -2246,8 +2987,11 @@ const SearchClient = () => {
             </div>
             <div className={styles["table-subheading"]}>
               <h4>
-                Total Duplicate Groups : {totalDuplicateRecordCount >= duplicateRecord?.arr?.length ? duplicateRecord?.arr?.length : totalDuplicateRecordCount} of{" "}
-                {totalDuplicateRecordCount} / Total{" "}
+                Total Duplicate Groups :{" "}
+                {totalDuplicateRecordCount >= duplicateRecord?.arr?.length
+                  ? duplicateRecord?.arr?.length
+                  : totalDuplicateRecordCount}{" "}
+                of {totalDuplicateRecordCount} / Total{" "}
                 {duplicateRecord.totalRawRecordCount} of Raw
               </h4>
               {/* <div className={styles.pagebtn}>
@@ -2353,7 +3097,10 @@ const SearchClient = () => {
                           <td>
                             <AiTwotoneDelete
                               onClick={() => {
-                                handleDelete(item.client_id);
+                                handleDuplicateDelete(
+                                  item.client_id,
+                                  item.database_status_db
+                                );
                               }}
                             />
                           </td>
@@ -2372,7 +3119,12 @@ const SearchClient = () => {
                 </div>
               </React.Fragment>
             ))}
-
+            <div>
+              <h5>
+                Note: If you want to skip record using Hide Button instead of
+                Delete
+              </h5>
+            </div>
             <div className={styles.closediv}>
               <button
                 className={styles.custombtn}
@@ -3571,6 +4323,14 @@ const SearchClient = () => {
             </span>
           )}
       </div>
+      {msg && (
+        <MessagePortal
+          message1={msg}
+          onClose={() => {
+            setMsg("");
+          }}
+        />
+      )}
 
       {/* ==================== */}
     </div>

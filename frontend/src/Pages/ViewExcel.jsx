@@ -130,9 +130,12 @@ const ViewExcel = () => {
             <thead>
               <tr>
                 <th>Sr No</th>
-                <th>UserId</th>
+                <th>Upload By</th>
                 <th>Date</th>
                 <th>Time</th>
+                <th>Assign To</th>
+                <th>Assign By</th>
+                <th>Excel Name</th>
                 <th>Excel Id</th>
                 <th>Total</th>
                 <th>View</th>
@@ -145,6 +148,9 @@ const ViewExcel = () => {
                   <td>{item.userId_db}</td>
                   <td>{item.date_db}</td>
                   <td>{item.time_db}</td>
+                  <td>{item.assignTo_db}</td>
+                  <td>{item.assignBy_db}</td>
+                  <td>{item.excel_title_db}</td>
                   {/* <td>
                   <a
                     href={`${base_url}${item.excelURL_db}`}

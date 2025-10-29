@@ -7,7 +7,7 @@ import { useContext } from "react";
 import { base_url } from "../../../config/config";
 
 const ScheduleOptima = (props) => {
-  const {userLoginId} = useContext(AuthContext)
+  const { userLoginId } = useContext(AuthContext);
   const [userProduct, setUserProduct] = useState([]);
   const [scheduleData, setScheduleData] = useState();
   const [showProgress, setShowProgress] = useState([]);
@@ -31,14 +31,15 @@ const ScheduleOptima = (props) => {
     Support: "support_db",
   };
 
-
   useEffect(() => {
     const fetch = async () => {
       const result = await axios.get(
         `${base_url}/users/search-by-user/${userLoginId}`
       );
-      // console.log("product list hai", result.data.assignProduct);
-      setUserProduct(result.data.assignProduct);
+      console.log("product list hai", result.data.result?.assignProduct);
+      setUserProduct(
+        result.data?.result?.assignProduct.map((item) => item.label)
+      );
     };
     fetch();
   }, []);
@@ -61,7 +62,7 @@ const ScheduleOptima = (props) => {
   };
 
   useEffect(() => {
-    const initialState = userProduct.reduce((acc, product) => {
+    const initialState = userProduct?.reduce((acc, product) => {
       acc[product] = ScheduleList.reduce((colAcc, col) => {
         colAcc[col] = "";
         return colAcc;
@@ -87,6 +88,7 @@ const ScheduleOptima = (props) => {
         time: new Date().toLocaleTimeString(),
       });
       console.log(`${props.userLoginId} schedule golas saved`, result);
+      alert(result.data.message);
     } catch (err) {
       console.log("internal error", err);
       if (
@@ -105,36 +107,40 @@ const ScheduleOptima = (props) => {
       }
     }
   };
-return (
+  return (
     <div className={styles.main}>
-      <span>
-        <h2 style={{ width: "30%", display: "flex", justifyContent: "start" }}>
-          {userLoginId}
-        </h2>
-        <h2 style={{ fontSize: "22px", width: "40%", textAlign: "center" }}>
-          Schedule Goal
-        </h2>
-        <h2 style={{ width: "30%", display: "flex", justifyContent: "end", gap: "10px" }}>
-          Date:{" "}
-          <input
-            type="date"
-            value={selectDate}
-            onChange={(e) => setSelectDate(e.target.value)}
-          />
-        </h2>
-      </span>
+      <div  className={styles.heading}>
+        <span>
+          <h4>{userLoginId}</h4>
+        </span>
+        <span>
+          <h3 style={{textAlign:"center"}}>Schedule Goal</h3>
+        </span>
+        <span style={{textAlign:"end"}}>
+          <h4>
+            Date:{" "}
+            <input
+              type="date"
+              value={selectDate}
+              onChange={(e) => setSelectDate(e.target.value)}
+            />
+          </h4>
+        </span>
+      </div>
 
       {/* Grid */}
       <div className={styles.outerScroll}>
         <div
           className={styles.gridWrapper}
           style={{
-            gridTemplateColumns: `150px repeat(${userProduct.length}, 120px)`,
+            gridTemplateColumns: `150px repeat(${userProduct?.length}, 120px)`,
           }}
         >
           {/* Header Row */}
-          <div className={`${styles.gridItem} ${styles.stickyCol}`}>Task Type</div>
-          {userProduct.map((product) => (
+          <div className={`${styles.gridItem} ${styles.stickyCol}`}>
+            Task Type
+          </div>
+          {userProduct?.map((product) => (
             <div className={styles.gridItem} key={product}>
               {product}
             </div>
@@ -148,7 +154,7 @@ return (
                 <div className={`${styles.gridItem} ${styles.stickyCol}`}>
                   {task}
                 </div>
-                {userProduct.map((product) => {
+                {userProduct?.map((product) => {
                   const progress = showProgress?.[product]?.[backendTaskKey];
                   return (
                     <div className={styles.gridItem} key={`${task}-${product}`}>
@@ -184,14 +190,17 @@ return (
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "end", padding: "10px" }}>
-        <h2>Set Deadline:</h2>
+      <div className={styles.setterdiv}>
+        <h4>Set Deadline:</h4>
+        <span style={{width:"auto"}}>
         <TimePickerComponent onTimeChange={handleTimeChange} />
+
+        </span>
       </div>
 
       <div className={styles.btn}>
-        <button onClick={handleScheduleGoals}>Save Schedule</button>
-        <button onClick={handleGoalsShow}>Refresh</button>
+        <button className={styles.custombtn} onClick={handleScheduleGoals}>Save Schedule</button>
+        <button className={styles.custombtn} onClick={handleGoalsShow}>Refresh</button>
         {props.onShowOpenRequest && (
           <button onClick={props.onCheckExtraTask}>Open Request</button>
         )}

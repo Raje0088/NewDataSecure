@@ -23,6 +23,11 @@ function initializeSocket(server) {
             io.emit("remainder are", data)
         })
 
+        socket.on("remindUser",(data)=>{
+              console.log("Reminder requested for:", data);
+            io.to(data.assignTo).emit("userReminder",data)
+        })
+
         socket.on("disconnect", () => {
             console.log("User disconnected", socket.id);
         })

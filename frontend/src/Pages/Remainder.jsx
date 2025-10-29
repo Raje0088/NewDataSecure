@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import styles from "./Remainder.module.css";
 import socket from "../socketio/socket";
 import axios from "axios";
@@ -6,8 +6,11 @@ import { useNavigate } from "react-router-dom";
 import { MdOutlineDownloadDone } from "react-icons/md";
 import { IoHourglassOutline } from "react-icons/io5";
 import { base_url } from "../config/config";
+import { AuthContext } from "../context-api/AuthContext";
 
 const Remainder = ({ remainder, setRemainder, refreshRemainder }) => {
+  const { userLoginId } = useContext(AuthContext);
+  console.log("remainder", remainder);
   const navigate = useNavigate();
   const [remainderDate, setRemainderDate] = useState(null);
   const [filterRemainder, setFilterRemainder] = useState(remainder);
@@ -38,13 +41,13 @@ const Remainder = ({ remainder, setRemainder, refreshRemainder }) => {
     (item) => item.stage_db === "Recovery"
   ).length;
   console.log("rema", filterRemainder);
+
   useEffect(() => {
     const fetch = async () => {
       try {
-        const result = await axios.put(
-          `${base_url}/remainders/status/${remainderDate}`,
-          {}
-        );
+        const result = await axios.get(`${base_url}/remainders/status`, {
+          params: { date: remainderDate, userId: userLoginId },
+        });
         console.log("yo", result.data.result);
         setFilterRemainder(result.data.result);
         refreshRemainder();
@@ -100,7 +103,7 @@ const Remainder = ({ remainder, setRemainder, refreshRemainder }) => {
   const redirectToClientPage = (id, db) => {
     const filterId = filterRemainder.filter((item) => item.client_id === id);
     const stg = filterId.map((item) => item.stage_db);
-    if (db === "client_db") {
+    if (db === "Client") {
       navigate("/client-page", { state: { id, stg, from: "remainder" } });
     } else {
       navigate("/userpage", { state: { id, stg, from: "remainder" } });
@@ -235,6 +238,7 @@ const Remainder = ({ remainder, setRemainder, refreshRemainder }) => {
               <th id={styles.ths} className={styles.align}>
                 Status
               </th>
+              <th>User Id</th>
             </tr>
             {filterRemainder.length > 0 &&
               filterRemainder.map((item, idx) => (
@@ -262,6 +266,7 @@ const Remainder = ({ remainder, setRemainder, refreshRemainder }) => {
                       <IoHourglassOutline />
                     )}
                   </td>
+                  <td>{item.userId_db}</td>
                 </tr>
               ))}
           </table>

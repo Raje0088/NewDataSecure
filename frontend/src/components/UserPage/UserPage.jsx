@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import styles from "./UserPage.module.css";
 import AddField from "../ClientPage/AddField";
@@ -18,18 +18,16 @@ import History from "../HistoryPage/History";
 import { HiOutlineRefresh } from "react-icons/hi";
 import { IoReceipt } from "react-icons/io5";
 import { base_url } from "../../config/config";
-import { useRef } from "react";
 import { AuthContext } from "../../context-api/AuthContext";
 import { useContext } from "react";
 
 const UserPage = () => {
-  const { userLoginId } = useContext(AuthContext);
-
+  const { userLoginId, userPermissions } = useContext(AuthContext);
+  const originalDataRef = useRef(null);
   const navigate = useNavigate();
   const { state } = useLocation();
   const [getSelectedTime, setGetSelectedTime] = useState("");
   const taskDetails = state?.taskdata || "";
-  console.log("taskDetails--", state?.selectedClients?.[0]);
   const [region, setRegion] = useState([]);
   const [districtOptions, setDistrictOptions] = useState([]);
   const [stateOptions, setStateOptions] = useState([]);
@@ -40,7 +38,7 @@ const UserPage = () => {
   const [feedback, setFeedback] = useState(false);
   const [isUnsavedNewForm, setIsUnsavedNewForm] = useState(false);
   const [getSelectedNewTime, setGetSelectedNewTime] = useState("");
-  const [clientDetails, setClientDetails] = useState({
+  const initialClientDetails = {
     sr_no: "",
     clientId: "",
     bussinessNames: {},
@@ -106,7 +104,10 @@ const UserPage = () => {
       referenceId: "",
       mode: "",
     },
-  });
+  };
+  const [clientDetails, setClientDetails] = useState(initialClientDetails);
+
+  const [isModified, setIsModified] = useState(false);
   const [stageOptions, setStageOptions] = useState([
     { label: "Support", value: "support_db" },
     { label: "Training", value: "training_db" },
@@ -126,8 +127,8 @@ const UserPage = () => {
   const [checkPermissionManagement, setCheckPermissionManagement] = useState(
     {}
   );
-  const [userIdArray, setUserIdArray] = useState([]);
-  const [userIndex, setUserIndex] = useState(0);
+  const [taskClientIdArray, setTaskClientIdArray] = useState([]);
+  const [taskIndex, setTaskIndex] = useState(0);
   const [currentClientId, setCurrentClientId] = useState("");
   const [isTaskMode, setIsTaskMode] = useState(false);
   const [clientCount, setClientCount] = useState("");
@@ -165,8 +166,10 @@ const UserPage = () => {
   ];
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyPop, setHistoryPop] = useState(false);
+  const [activedBackButton, setActivedBackButton] = useState(false);
 
   useEffect(() => {
+    if (!getSelectedNewTime) return;
     setClientDetails((prev) => ({
       ...prev,
       completion: {
@@ -177,76 +180,43 @@ const UserPage = () => {
   }, [getSelectedNewTime]);
 
   useEffect(() => {
-    console.log("newId========", state);
-    if (state?.from === "searchClient") {
-      const id = state.selectedClients?.[0];
-      if (id) {
-        const newId = id.replace("C", "U");
-        console.log("newId", newId);
-        setCurrentClientId(newId);
-        localStorage.setItem("user-subscription-id", newId); // persist chosen id
-      }
-    }
-    if (state?.from === "remainder") {
-      const id = state.id;
-      console.log("inside remainder", id, state.from);
-      if (id) {
-        const newId = id.replace("C", "U");
-        console.log("newId", newId);
-        setCurrentClientId(newId);
+    const fetchState = async () => {
+      // console.log("state main hai========", state);
+
+      if (state?.from === "searchClient") {
+        setTaskClientIdArray(state.selectedClients);
+        const id = state.selectedClients[taskIndex];
+        // console.log("ffrom id", id, state.selectedClients);
+        setCurrentClientId(id);
+        setActivedBackButton(true);
+      } else if (state?.from === "remainder") {
+        const id = state.id;
+        // console.log("inside remainder", id, state.from);
+
+        setCurrentClientId(id);
         setStageTab("Completion");
-        localStorage.setItem("user-subscription-id", newId); // persist chosen id
+      } else if (state?.from === "clientpage") {
+        const id = state.id;
+        setCurrentClientId(id);
+        // console.log("inside clientpage", id, state.from);
+      } else {
+        handleClientNewForm();
+        console.log("inside handlenew form");
       }
-    }
+    };
+    fetchState();
   }, [state]);
 
   useEffect(() => {
-    const fetchUserIds = async () => {
-      try {
-        const getIds = await axios.get(
-          `${base_url}/subscribe-user/get-usersubscribeids`
-        );
-        console.log("getIds", getIds.data.result);
-
-        if (getIds.data.result && getIds.data.result.length > 0) {
-          const userSubscribeIds = getIds.data.result.map(
-            (ids) => ids.client_subscription_id
-          );
-          setUserIdArray(userSubscribeIds);
-
-          // Only set default if we DON'T already have a selected id from searchClient
-          if (!state?.from) {
-            const storedId =
-              localStorage.getItem("user-subscription-id") ||
-              userSubscribeIds[userIndex] ||
-              userSubscribeIds[0];
-            if (storedId) {
-              setCurrentClientId(storedId);
-            }
-          }
-        }
-      } catch (err) {
-        console.log("Error fetching user ids", err);
-      }
-    };
-    fetchUserIds();
-  }, []);
-  useEffect(() => {
-    console.log("Fetching with clientId:", currentClientId);
+    console.log("Fetching with clientId:---", currentClientId);
   }, [currentClientId]);
 
   useEffect(() => {
-    if (userIdArray.length > 0 && !state?.from) {
-      setCurrentClientId(userIdArray[userIndex]);
-    }
-    console.log("ids index ==>", userIdArray[userIndex]);
-    console.log(" index ==>", userIndex);
-  }, [userIdArray, userIndex, state]);
-
-  useEffect(() => {
+    console.log("inside Id", currentClientId);
     if (!currentClientId) return; // Prevent call if ID is empty
     const fetchUserData = async () => {
       try {
+        console.log("inside fun", currentClientId);
         const result = await axios.get(
           `${base_url}/subscribe-user/search-subscribe-user/${currentClientId}`
         );
@@ -254,25 +224,25 @@ const UserPage = () => {
         console.log("details", detail);
 
         const businessFields = [
-          { label: "Business Name", value: detail.optical_name1_db },
-          { label: "Business Name 2", value: detail.optical_name2_db },
-          { label: "Business Name 3", value: detail.optical_name3_db },
+          { label: "Business Name", value: detail?.optical_name1_db },
+          { label: "Business Name 2", value: detail?.optical_name2_db },
+          { label: "Business Name 3", value: detail?.optical_name3_db },
         ];
         const emails = [
-          { label: "Email 1", value: detail.email_1_db },
-          { label: "Email 2", value: detail.email_2_db },
-          { label: "Email 3", value: detail.email_3_db },
+          { label: "Email 1", value: detail?.email_1_db },
+          { label: "Email 2", value: detail?.email_2_db },
+          { label: "Email 3", value: detail?.email_3_db },
         ];
         const addresses = [
-          { label: "Address 1", value: detail.address_1_db },
-          { label: "Address 2", value: detail.address_2_db },
-          { label: "Address 3", value: detail.address_3_db },
+          { label: "Address 1", value: detail?.address_1_db },
+          { label: "Address 2", value: detail?.address_2_db },
+          { label: "Address 3", value: detail?.address_3_db },
         ];
 
         const mobiles = [
-          { label: "Primary Number", value: detail.mobile_1_db },
-          { label: "Secondary Number", value: detail.mobile_2_db },
-          { label: "Tertiary Number", value: detail.mobile_3_db },
+          { label: "Primary Number", value: detail?.mobile_1_db },
+          { label: "Secondary Number", value: detail?.mobile_2_db },
+          { label: "Tertiary Number", value: detail?.mobile_3_db },
         ];
         const todayDate = todaysDate();
 
@@ -283,7 +253,7 @@ const UserPage = () => {
         );
 
         setSelectNewStage((detail.stage_db || []).map((stage) => stage.label));
-        console.log("amount", detail.amountDetails_db);
+        //console.log("amount", detail.amountDetails_db);
         setSelectedUserProduct(
           (detail.product_db || []).map((item) => ({
             label: item.label,
@@ -298,31 +268,27 @@ const UserPage = () => {
           prevPaid: detail.amountDetails_db.paidAmount,
           prevBalance: detail.amountDetails_db.balanceAmount,
         });
-        setClientDetails((prev) => ({
-          ...prev,
+        const mappedClient = {
+          ...initialClientDetails,
           sr_no: detail.client_serial_no_id,
           clientId: detail.client_id,
           userSubscriptionId: detail.client_subscription_id,
+          addresses: addresses,
+          pincode: detail.pincode_db,
           clientName: detail.client_name_db,
-          quotationShare: detail.quotationShare_db,
+          bussinessNames: businessFields,
           followUpDate: detail.expectedDate_db || todayDate,
+          numbers: mobiles,
+          emails: emails,
+          quotationShare: detail.quotationShare_db,
           expectedDate: "",
+          remarks: detail.remarks_db || "",
           callType: detail.callType_db,
           verifiedBy: detail.verifiedBy_db,
           time: detail.time_db,
-          label: detail.label_db,
+          label: detail.label_db || "",
           website: detail.website_db,
           database: detail.database_status_db,
-          bussinessNames: businessFields,
-          numbers: mobiles,
-          emails: emails,
-          addresses: addresses,
-          pincode: detail.pincode_db,
-          district: detail.district_db,
-          state: detail.state_db,
-          country: detail.country_db,
-          remarks: detail.remarks_db,
-          amountDetails: detail.amountDetails_db,
           amountDetails: {
             totalAmount: detail.amountDetails_db?.totalAmount || "",
             paidAmount: detail.amountDetails_db?.paidAmount || "",
@@ -335,7 +301,7 @@ const UserPage = () => {
             mode: detail.amountDetails_db?.mode || "",
           },
           completion: {
-            ...prev.completion,
+            // ...prev.completion,
             receivedProduct: detail?.product_db?.[0]?.label || "",
             status: detail?.completion_db?.status || "",
             newExpectedDate: "",
@@ -343,7 +309,9 @@ const UserPage = () => {
             newRemark: detail?.completion_db?.newRemark || "",
             newStage: detail?.completion_db?.newStage || "",
           },
-        }));
+        };
+        setClientDetails(mappedClient);
+
         setStoredTotalAmount(
           parseFloat(detail.amountDetails_db.totalAmount) || 0
         );
@@ -354,6 +322,8 @@ const UserPage = () => {
           parseFloat(detail.amountDetails_db.balanceAmount) || 0
         );
         setCheckHotClient(detail?.tracking_db?.hot_db?.completed);
+
+        setIsModified(false);
       } catch (err) {
         console.log("internal error", err);
       }
@@ -363,6 +333,7 @@ const UserPage = () => {
   }, [currentClientId, refresh]);
 
   //WHEN PINCODE ENTER AUTO FETCH STATE,DISTRICT, DEBOUNCING USED
+
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (
@@ -442,12 +413,12 @@ const UserPage = () => {
         const result = await axios.get(
           `${base_url}/users/search-by-user/${userLoginId}`
         );
-        console.log("product", result.data?.assignProduct);
-        const productsList = result.data?.assignProduct.map((item) => ({
-          label: item,
-          value: item,
+        //console.log("product", result.data?.assignProduct);
+        const productsList = result.data?.result?.assignProduct.map((item) => ({
+          label: item.label,
+          value: item.label,
         }));
-        console.log("product", productsList);
+        //console.log("product", productsList);
         setUserProductList(productsList);
       } catch (err) {
         console.log("internal error", err);
@@ -463,12 +434,12 @@ const UserPage = () => {
         const result = await axios.get(
           `${base_url}/setting/get-superadmin-product`
         );
-        console.log("product", result.data.result);
+        //console.log("product", result.data.result);
         const productsList = result.data.result?.map((item) => ({
           label: item.assign_product_name,
           value: item.assign_product_name,
         }));
-        console.log("Super admin product===============", productsList);
+        //console.log("Super admin product===============", productsList);
         setUserProductList(productsList);
       } catch (err) {
         console.log("internal error", err);
@@ -593,7 +564,7 @@ const UserPage = () => {
   };
 
   const handleStageChange = (selectedOptions) => {
-    console.log("Full Selected Objects:", selectedOptions);
+    //console.log("Full Selected Objects:", selectedOptions);
 
     let updatedOptions = [...(selectedOptions || [])];
     const tempStageValues = updatedOptions.map((item) => item.value);
@@ -628,7 +599,7 @@ const UserPage = () => {
     setClientDetails((prev) => {
       const updatedTracker = { ...(prev.tracker || {}) };
       //Loop over all tracker keys and update based on selection
-      console.log("updatedTracker", updatedTracker);
+      //console.log("updatedTracker", updatedTracker);
       Object.keys(updatedTracker).forEach((key) => {
         // Object.keys(updatedTracker) contains all keys from tracker object ---> ["follow_up", "installation_db", "demo_db", "hot_db", "lost_db"]
         if (selectedStageValues.includes(key)) {
@@ -642,9 +613,9 @@ const UserPage = () => {
             completedDate: "",
           };
         }
-        console.log(
-          `Key: ${key}, Completed: ${updatedTracker[key].completed}, Date: ${updatedTracker[key].completedDate}`
-        );
+        // console.log(
+        //   `Key: ${key}, Completed: ${updatedTracker[key].completed}, Date: ${updatedTracker[key].completedDate}`
+        // );
       });
 
       return {
@@ -653,9 +624,10 @@ const UserPage = () => {
       };
     });
     // console.log("yooo")
+    setIsModified(true);
   };
   const handleSelectedUserProduct = (selectOptions) => {
-    console.log("product list", selectOptions);
+    //console.log("product list", selectOptions);
     setSelectedUserProduct(selectOptions);
   };
   const handleSwichTo = () => {
@@ -679,13 +651,19 @@ const UserPage = () => {
   };
 
   const handlePrevButton = () => {
-    if (userIndex > 0) {
-      setUserIndex((prev) => prev - 1);
+    if (taskIndex > 0) {
+      const index = taskIndex - 1;
+      console.log("index", index);
+      setCurrentClientId(taskClientIdArray[index]);
+      setTaskIndex((prev) => prev - 1);
     }
   };
   const handleNextButton = () => {
-    if (userIndex < userIdArray.length - 1) {
-      setUserIndex((prev) => prev + 1);
+    if (taskIndex < taskClientIdArray.length - 1) {
+      const index = taskIndex + 1;
+      console.log("index", index);
+      setCurrentClientId(taskClientIdArray[index]);
+      setTaskIndex((prev) => prev + 1);
     }
   };
 
@@ -708,19 +686,171 @@ const UserPage = () => {
           },
         }
       );
-      console.log("payment done", result);
+      //console.log("payment done", result);
       alert("Payment done");
     } catch (err) {
       console.log("internal error", err);
     }
   };
-  const handleNewUserDetails = async()=>{
-    try{
 
-    }catch(err){
-      
+  //CREATE NEW FORM FOR CLIENT DB
+  const handleClientNewForm = async () => {
+    //console.log("faffsadfsd");
+    try {
+      const result = await axios.get(`${base_url}/raw-data/global-id`);
+      //console.log("lastId", result.data.getLastId);
+      const lastSrno = result.data.getLastId;
+      const getClientId = `C${String(lastSrno).padStart(7, "0")}`;
+      //console.log("getClientId", getClientId);
+      const userId = getClientId.replace("C", "U");
+      const TodaysDate = new Date().toISOString().split("T")[0];
+      setClientDetails({
+        ...initialClientDetails,
+        clientId: getClientId,
+        userSubscriptionId: userId,
+        sr_no: lastSrno,
+        followUpDate: TodaysDate,
+        bussinessNames: [{ label: "Business Name", value: "" }],
+        numbers: [{ label: "Primary Number", value: "" }],
+        emails: [{ label: "Email 1", value: "" }],
+        addresses: [{ label: "Address 1", value: "" }],
+        assign: { assignBy: "", assignTo: "" },
+      });
+
+      setCurrentClientId(getClientId);
+      // setIsUnsavedNewForm(true); // FOR FRESH NEW CLIENT WHICH NOT PRESENT IN RAW FOR THIS USING SO ALSO SENDING DEACTIVATED COPY IN RAW DB
+      setSelectedStageOptions([]);
+      setSelectedUserProduct([]);
+      setStageTab("Planner");
+      setCheckHotClient(false);
+      setFeedback(false);
+      handleTimeChange("HH:MM:SS AM/PM");
+      handleNewTimeChange("HH:MM:SS AM/PM");
+      setIsUnsavedNewForm(true);
+    } catch (err) {
+      console.log("internal errro", err);
     }
-  }
+  };
+
+  const handleSaveUserDetails = async () => {
+    // console.log(
+    //   "selectedUserProduct",
+    //   clientDetails.amountDetails,
+    //   clientDetails.amountHistory
+    // );
+    try {
+      clientDetails.tracker.no_of_new_calls_db = {
+        completed: true,
+        completedDate: new Date().toLocaleDateString("en-GB"),
+      };
+
+      if (
+        clientDetails.tracker.recovery_db.completed === true &&
+        clientDetails.amountDetails.finalCost > 0 &&
+        clientDetails.amountDetails.newAmount > 0
+      ) {
+        await handlePaymentDetails();
+      }
+
+      const result = await axios.post(
+        `${base_url}/subscribe-user/create-subscribe-user`,
+        {
+          clientSerialNo: clientDetails.sr_no,
+          clientId: currentClientId,
+          userId: userLoginId || clientDetails.assignTo,
+          bussinessNames: clientDetails.bussinessNames,
+          clientName: clientDetails.clientName,
+          numbers: clientDetails.numbers,
+          emails: clientDetails.emails,
+          website: clientDetails.website,
+          addresses: clientDetails.addresses,
+          pincode: clientDetails.pincode,
+          district: clientDetails.district,
+          state: clientDetails.state,
+          assignBy: clientDetails.assignBy,
+          assignTo: clientDetails.assignTo || userLoginId,
+          product: selectedUserProduct.map((item) => ({
+            label: item.label,
+            value: item.label,
+          })),
+          stage: selectedStageOptions.map((stage) => ({
+            label: stage.label,
+            value: stage.value,
+          })),
+          quotationShare: clientDetails.quotationShare,
+          expectedDate: clientDetails.expectedDate,
+          remarks: clientDetails.remarks,
+          followUpDate: clientDetails.followUpDate,
+          verifiedBy: clientDetails.verifiedBy,
+          action: clientDetails.action,
+          database: clientDetails.database,
+          tracker: clientDetails.tracker,
+          amountDetails: clientDetails.amountDetails,
+          amountHistory: clientDetails.amountHistory,
+          followUpTime: getSelectedTime,
+          label: clientDetails.label,
+          completion: clientDetails.completion,
+          action: "Create User",
+          database: "User",
+        }
+      );
+
+      console.log("User Save Successfully", result);
+
+      const resultHistory = await axios.post(
+        `${base_url}/history/create-history`,
+        {
+          clientSerialNo: clientDetails.sr_no,
+          clientId: clientDetails.clientId,
+          userId: userLoginId,
+          bussinessNames: clientDetails.bussinessNames,
+          clientName: clientDetails.clientName,
+          numbers: clientDetails.numbers,
+          emails: clientDetails.emails,
+          website: clientDetails.website,
+          addresses: clientDetails.addresses,
+          pincode: clientDetails.pincode,
+          district: clientDetails.district,
+          state: clientDetails.state,
+          country: clientDetails.country,
+          assignBy: taskDetails.assignBy_db || "NA",
+          assignTo: taskDetails.assignTo_db || userLoginId,
+          product: selectedUserProduct.map((item) => ({
+            label: item.label,
+            value: item.label,
+          })),
+          stage: selectedStageOptions.map((stage) => ({
+            label: stage.label,
+            value: stage.value,
+          })),
+          quotationShare: clientDetails.quotationShare,
+          expectedDate: clientDetails.expectedDate,
+          remarks: clientDetails.remarks,
+          callType: clientDetails.callType,
+          followUpDate: clientDetails.followUpDate,
+          verifiedBy: clientDetails.verifiedBy,
+          database: "User",
+          tracker: clientDetails.tracker,
+          amountDetails: clientDetails.amountDetails,
+          amountHistory: clientDetails.amountHistory,
+          isUserPage: true,
+          followUpTime: getSelectedTime,
+          label: clientDetails.label,
+          completion: clientDetails.completion,
+          action: "Create User",
+        }
+      );
+      console.log("Client History Save Succressfully", resultHistory);
+      if (result && resultHistory) {
+        alert("User successfully Save");
+      }
+
+      setRefreshHistory((prev) => !prev);
+      setRefresh((prev) => !prev);
+    } catch (err) {
+      console.log("internal error", err);
+    }
+  };
   const handleUpdateUserDetails = async () => {
     console.log(
       "selectedUserProduct",
@@ -780,7 +910,7 @@ const UserPage = () => {
           label: clientDetails.label,
           completion: clientDetails.completion,
           action: "update User",
-          database: "user_db",
+          database: "User",
         }
       );
 
@@ -818,7 +948,7 @@ const UserPage = () => {
           callType: clientDetails.callType,
           followUpDate: clientDetails.followUpDate,
           verifiedBy: clientDetails.verifiedBy,
-          database: "user_db",
+          database: "User",
           tracker: clientDetails.tracker,
           amountDetails: clientDetails.amountDetails,
           amountHistory: clientDetails.amountHistory,
@@ -835,6 +965,7 @@ const UserPage = () => {
       }
 
       setRefreshHistory((prev) => !prev);
+
       setRefresh((prev) => !prev);
     } catch (err) {
       console.log("internal error", err);
@@ -914,11 +1045,30 @@ const UserPage = () => {
     try {
       const result = await axios.get(`${base_url}/payment/receipt/${id}`);
       // console.log(result.data.result);
-      const paymentData = (result.data.result);
-      navigate("/receipt",{state:{paymentData, from:"payment-receipt",label:"Payment Details"},})
-
+      const paymentData = result.data.result;
+      navigate("/receipt", {
+        state: {
+          paymentData,
+          from: "payment-receipt",
+          label: "Payment Details",
+        },
+      });
     } catch (err) {
       console.log("internal err", err);
+    }
+  };
+  const goToBack = () => {
+    navigate("/search-client");
+  };
+
+  const handleDeactive = async () => {
+    try {
+      const result = await axios.put(
+        `${base_url}/raw-data/deactivate-rawdata/${currentClientId}`
+      );
+      alert(result.data.message);
+    } catch (err) {
+      console.log("internal  error", err);
     }
   };
   return (
@@ -1059,7 +1209,7 @@ const UserPage = () => {
                   initialLabel={"Business Name"}
                   initialFields={clientDetails.bussinessNames}
                   onChange={(values) => {
-                    console.log("Bussiness name values", values);
+                    //console.log("Bussiness name values", values);
                     const businessNames = values;
                     setClientDetails((prev) => ({
                       ...prev,
@@ -1074,7 +1224,7 @@ const UserPage = () => {
                   initialLabel={"Primary Number"}
                   initialFields={clientDetails.numbers}
                   onChange={(values) => {
-                    console.log("numbers", values);
+                    //console.log("numbers", values);
                     setClientDetails((prev) => ({
                       ...prev,
                       numbers: values,
@@ -1089,7 +1239,7 @@ const UserPage = () => {
                   initialLabel={"Email 1"}
                   initialFields={clientDetails.emails}
                   onChange={(values) => {
-                    console.log("Email", values);
+                    //console.log("Email", values);
                     setClientDetails((prev) => ({
                       ...prev,
                       emails: values,
@@ -1103,7 +1253,7 @@ const UserPage = () => {
                   initialLabel={"Address 1"}
                   initialFields={clientDetails.addresses}
                   onChange={(values) => {
-                    console.log("Bussiness name values", values);
+                    //console.log("Bussiness name values", values);
                     setClientDetails((prev) => ({
                       ...prev,
                       addresses: values,
@@ -1369,7 +1519,7 @@ const UserPage = () => {
                   <CustomInput
                     type="number"
                     label={"Balance"}
-                    readonly={true}
+                    readOnly={true}
                     value={clientDetails.amountDetails.balanceAmount}
                     onChange={(e) => {
                       hanldeAmountChange("balanceAmount", e.target.value);
@@ -1379,6 +1529,9 @@ const UserPage = () => {
                   <CustomInput
                     type="text"
                     label={"GST %"}
+                    readOnly={
+                      clientDetails.amountDetails.gst > 0 ? true : false
+                    }
                     value={clientDetails.amountDetails.gst}
                     onChange={(e) => {
                       hanldeAmountChange("gst", e.target.value);
@@ -1636,10 +1789,13 @@ const UserPage = () => {
                 className={styles["arrow-icon"]}
                 style={{
                   position: "relative",
-                  backgroundColor: userIndex === 0 ? "white" : "",
+                  backgroundColor: taskIndex === 0 ? "white" : "",
                 }}
                 onClick={handlePrevButton}
               >
+                {taskClientIdArray.length > 0 && (
+                  <span className={styles.btncounterleft}>{taskIndex}</span>
+                )}
                 <FaAngleLeft />
               </div>
               <div
@@ -1661,21 +1817,55 @@ const UserPage = () => {
                   style={{ fontSize: "40px", color: "white" }}
                 />
               </div>
-              {/* <button  onClick={handleNewUserDetails}>New</button> */}
-              <button onClick={handleUpdateUserDetails}>Update</button>
+              <button onClick={handleClientNewForm}>New</button>
+              {isUnsavedNewForm === true ? (
+                <button onClick={handleSaveUserDetails}>Save</button>
+              ) : (
+                <button
+                  disabled={!isModified}
+                  style={
+                    !isModified ? { background: "gray", opacity: 0.5 } : {}
+                  }
+                  onClick={handleUpdateUserDetails}
+                >
+                  Update
+                </button>
+              )}
               <button>Search</button>
-              <button>Deactivate</button>
+              {userPermissions.delete_P && (
+                <button
+                  onClick={() => {
+                    handleDeactive();
+                  }}
+                >
+                  Deactivate
+                </button>
+              )}
+              <button
+                style={{ display: activedBackButton === true ? "" : "none" }}
+                onClick={() => {
+                  goToBack();
+                }}
+              >
+                Back
+              </button>
 
               <div
                 className={styles["arrow-icon"]}
                 style={{
                   position: "relative",
                   backgroundColor:
-                    userIndex === userIdArray.length - 1 ? "white" : "",
+                    taskIndex === taskClientIdArray.length - 1 ? "white" : "",
                 }}
                 onClick={handleNextButton}
               >
                 <FaAngleRight />
+                {taskClientIdArray.length > 0 && (
+                  <span className={styles.btncounterright}>
+                    {" "}
+                    {taskClientIdArray.length - (taskIndex + 1)}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -1699,36 +1889,49 @@ const UserPage = () => {
           <div
             style={{
               width: "100%",
-              height: "auto",
+              height: "100%",
               position: "fixed",
-              background: "white",
+              background: "gray",
               top: "0",
               left: "0",
               fontSize: "36px",
               padding: "50px",
+              overflow: "hidden",
             }}
           >
-            <History
-              onRefresh={refreshHistory}
-              onCurrentClientId={clientDetails.clientId}
-              sorts={"des"}
-            />
             <div
               style={{
                 width: "100%",
-                height: "auto",
+                height: "100%",
                 display: "flex",
-                justifyContent: "end",
-                padding: "10px",
+                flexDirection: "column",
+                overflow: "hidden",
               }}
             >
-              <button
-                onClick={() => {
-                  setHistoryPop(false);
+              <History
+                onRefresh={refreshHistory}
+                onCurrentClientId={clientDetails.clientId}
+                sorts={"des"}
+              />
+              <div
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  display: "flex",
+                  justifyContent: "end",
+                  padding: "10px",
+                  borderTop: "1px solid #ccc",
+                  background: "white",
                 }}
               >
-                Cancel
-              </button>
+                <button
+                  onClick={() => {
+                    setHistoryPop(false);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -2798,7 +3001,7 @@ const UserPage = () => {
               className={styles["arrow-icon"]}
               style={{
                 position: "relative",
-                backgroundColor: userIndex === 0 ? "white" : "",
+                backgroundColor: taskIndex === 0 ? "white" : "",
               }}
               onClick={handlePrevButton}
             >
@@ -2830,7 +3033,7 @@ const UserPage = () => {
               style={{
                 position: "relative",
                 backgroundColor:
-                  userIndex === userIdArray.length - 1 ? "white" : "",
+                  taskIndex === userIdArray.length - 1 ? "white" : "",
               }}
               onClick={handleNextButton}
             >

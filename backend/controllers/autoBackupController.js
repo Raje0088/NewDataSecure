@@ -18,7 +18,9 @@ const creatAutoBackupEmails = async (req, res) => {
     try {
         const { email, userId = "SA", senderEmail, password } = req.body;
         console.log("emai", email)
+        const emailValidation = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (senderEmail && senderEmail.trim() !== "") {
+            if (!emailValidation.test(senderEmail)) return res.status(400).json({ message: "Invalid Email, email must contain @" })
 
             const isShutEmailExist = await autoBackupEmailModel.findOne({ issender_db: true })
             if (isShutEmailExist) return res.status(400).json({ message: "Only One Sender Email can create" })
@@ -31,6 +33,8 @@ const creatAutoBackupEmails = async (req, res) => {
                 }
             )
         } else {
+            if (!emailValidation.test(email)) return res.status(400).json({ message: "Invalid Email, email must contain @" })
+
             await autoBackupEmailModel.create(
                 {
                     email_db: email,
@@ -201,18 +205,18 @@ const getAutoBackupEmails = async (req, res) => {
 
 const takeBackup = async (req, res) => {
     try {
-        const {userId, password} = req.body;
-        if(userId !==  process.env.BACKUP_USERID || password !== process.env.BACKUP_PASS){
-            return res.status(401).json({message:"Unavthorized Access: Invalid credentials"})
+        const { userId, password } = req.body;
+        if (userId !== process.env.BACKUP_USERID || password !== process.env.BACKUP_PASS) {
+            return res.status(401).json({ message: "Unavthorized Access: Invalid credentials" })
         }
 
         const date = new Date()
-         const folderPath = "C:/Data Secure Backup/";
-         if(!fs.existsSync(folderPath)){
-            fs.mkdirSync(folderPath, {recursive:true})
+        const folderPath = "C:/Data Secure Backup/";
+        if (!fs.existsSync(folderPath)) {
+            fs.mkdirSync(folderPath, { recursive: true })
             console.log("folder path", folderPath)
-         }
-        const backupDir = path.join(folderPath, `mongoDump-${date.toISOString().split("T")[0]}`) ;
+        }
+        const backupDir = path.join(folderPath, `mongoDump-${date.toISOString().split("T")[0]}`);
 
         const url = process.env.MONGODB_URL
         const cmd = `mongodump --uri="${url}" --out="${backupDir}"`
@@ -306,10 +310,16 @@ The backup was taken on ${date}.`,
 
 
 
-cron.schedule('01 18 * * *', async () => {
+cron.schedule('36 14 * * *', async () => {
     try {
         const date = new Date()
-        const backupDir = `D:/project/MongoBackUp/mongoDump-${date.toISOString().split("T")[0]}`;
+
+        const folderPath = "C:/Data Secure Backup/";
+        if (!fs.existsSync(folderPath)) {
+            fs.mkdirSync(folderPath, { recursive: true })
+            console.log("folder path", folderPath)
+        }
+        const backupDir = path.join(folderPath, `mongoDump-${date.toISOString().split("T")[0]}`);
 
         const url = process.env.MONGODB_URL
         const cmd = `mongodump --uri="${url}" --out="${backupDir}"`
@@ -364,7 +374,7 @@ cron.schedule('01 18 * * *', async () => {
                         pass: hostPass,
                     }
 
-                }) 
+                })
                 const mailOptions = {
                     from: "rajchincholkar22@gmail.com",
                     to: [...BackupEmails],
@@ -402,9 +412,9 @@ const restoreBackup = async (req, res) => {
     const io = getIO();
 
     try {
-         const {userId, password} = req.body;
-        if(userId !==  process.env.BACKUP_USERID || password !== process.env.BACKUP_PASS){
-            return res.status(401).json({message:"Unavthorized Access: Invalid credentials"})
+        const { userId, password } = req.body;
+        if (userId !== process.env.BACKUP_USERID || password !== process.env.BACKUP_PASS) {
+            return res.status(401).json({ message: "Unavthorized Access: Invalid credentials" })
         }
 
         console.log("req.file:", req.file);

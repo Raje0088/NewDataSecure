@@ -1,12 +1,13 @@
 const { rawDataModel } = require("../models/rawDataModel")
 const { clientModel } = require("../models/clientModel")
-const {clientSubscriptionModel} =require("../models/clientSubscriptionModel")
+const { clientSubscriptionModel } = require("../models/clientSubscriptionModel")
+
 const csv = require("csvtojson");
 const xlsx = require("xlsx");
 const fs = require("fs")
 const path = require("path");
 const assetPath = require("../utils/assetPath")
-const { getNextGobalCounterSequence, getNextGobalCounterSequenceForRaw } = require("../utils/getNextSequence");
+const { getNextGobalCounterSequence, getNextGobalCounterSequenceForRaw, getLastNextValue } = require("../utils/getNextSequence");
 const { districtnames, statenames } = require("../utils/MasterPlaceList")
 const stringSimilarity = require("string-similarity");
 const { viewExcelModel } = require("../models/viewExcelModel");
@@ -22,17 +23,18 @@ const correctSpelling = (input, masterList) => {
 const rawDataDump = async (req, res) => {
     try {
         const userId = req.query.userId
+        const nameOFFile = req.query.originalName
         console.log("UserID:", userId);
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
         res.flushHeaders(); // Important: starts sending stream right away
 
-
+        const originalFileName = nameOFFile.split(".")[0]
         const fileName = req.params.filename;
         const filePath = path.join(assetPath.uploadExcel, fileName);
 
-        console.log("File:", fileName);
+        console.log("File:", fileName, originalFileName);
 
         if (!fs.existsSync(filePath)) {
             res.write(`event: error\ndata: ${JSON.stringify({ message: "File not found" })}\n\n`);
@@ -104,6 +106,7 @@ const rawDataDump = async (req, res) => {
                     email_2_db: item.Email2 || "",
                     followup_db: item.Followup || "",
                     dumpBy_db: `${userId}_${curTime}`,
+                    remark_db:item.Remark || "",
                 };
 
                 formattedDataArray.push(formattedData);
@@ -139,10 +142,11 @@ const rawDataDump = async (req, res) => {
             await viewExcelModel.create({
                 userId_db: userId,
                 excelURL_db: `/uploadExcel/${fileName}`,
-                date_db: new Date().toLocaleDateString("en-GB"),
+                date_db: new Date().toISOString().split("T")[0],
                 time_db: new Date().toLocaleTimeString(),
                 total_db: count,
                 dumpBy_db: `${userId}_${curTime}`,
+                excel_title_db: originalFileName.trim().toUpperCase(),
             })
         }
         res.write(`event: complete\ndata: ${JSON.stringify({ message: "Upload complete", total })}\n\n`);
@@ -215,27 +219,17 @@ const getrawDataNewFormId = async (req, res) => {
     }
 }
 
+
 const deactivateRawData = async (req, res) => {
     try {
         const clientId = req.params.id;
+        const result = await rawDataModel.findOneAndUpdate(
+            { client_id: clientId, isActive_db: true },
+            { $set: { isActive_db: false } },
+            { new: true, }
+        )
 
-        const clientToDeactivate = await rawDataModel.findOne({ ClientId_db: clientId })
-        console.log("clientData", clientToDeactivate)
-        if (!clientToDeactivate) {
-            return res.status(404).json({ message: "client not found or already deactivated" })
-        }
-        const srNoToDeactivate = clientToDeactivate.SrNo_db;
-        //step 1:set isActive false
-        const result = await rawDataModel.updateOne(
-            { ClientId_db: clientId, isActive_db: true },
-            { $set: { isActive_db: false } }
-        )
-        //step 2: shift all srno_db of isActive rows that are greater than deactivated one
-        const updateSrNo = await rawDataModel.updateMany(
-            { SrNo_db: { $gt: srNoToDeactivate }, isActive_db: true },
-            { $inc: { SrNo_db: -1 } }
-        )
-        res.status(200).json({ message: `Deactivated SrNo ${srNoToDeactivate}`, result, updateSrNo })
+        res.status(200).json({ message: `${clientId} deactivated successfully`, result })
     } catch (err) {
         res.status(500).json({ message: "Error during deactivation", err: err.message });
         console.log("Error during deactivation", err)
@@ -277,24 +271,50 @@ const activateRawData = async (req, res) => {
     }
 }
 
-//GET RAW DATA FILTERS BY SEARCH
+//GET RAW DATA FILTERS BY ScEARCH
 const filterRawData = async (req, res) => {
     try {
         const { clientId, clientName, opticalName, address, mobile, email, district, state, country, hot,
-            followUp, demo, installation, product, defaulter, recovery, lost, dateFrom, dateTo, clientType, } = req.query;
+            followUp, demo, installation, product, defaulter, recovery, lost, dateFrom, dateTo, clientType, pincode } = req.body;
         const { page = 1 } = req.query;
         const limit = 500;
         const skip = (page - 1) * limit;
-        console.log("query", req.query)
+        console.log("query raw", req.body)
+
         const filters = {}
+
         if (clientId) filters.client_id = clientId
+        if (pincode && pincode.length > 0) filters.pincode_db = { $in: pincode }
         if (clientName) filters.client_name_db = { $regex: clientName, $options: "i" }
-        if (opticalName) filters.optical_name1_db = { $regex: opticalName, $options: "i" }
-        if (address) filters.address_1_db = { $regex: address, $options: "i" }
-        if (mobile) filters.mobile_1_db = { $regex: mobile, $options: "i" }
-        if (email) filters.email_1_db = { $regex: email, $options: "i" }
+        if (opticalName) {
+            filters.$or = [
+                { optical_name1_db: { $regex: opticalName, $options: "i" } },
+                { optical_name2_db: { $regex: opticalName, $options: "i" } },
+                { optical_name3_db: { $regex: opticalName, $options: "i" } },
+            ]
+        }
+        if (address) {
+            filters.$or = [
+                { address_1_db: { $regex: address, $options: "i" } },
+                { address_2_db: { $regex: address, $options: "i" } },
+                { address_3_db: { $regex: address, $options: "i" } },
+            ]
+        }
+        if (mobile) {
+            filters.$or = [
+                { mobile_1_db: { $regex: mobile, $options: "i" } },
+                { mobile_2_db: { $regex: mobile, $options: "i" } },
+                { mobile_3_db: { $regex: mobile, $options: "i" } },
+            ]
+        }
+        if (email) filters.$or = [
+            { email_1_db: { $regex: email, $options: "i" } },
+            { email_2_db: { $regex: email, $options: "i" } },
+            { email_3_db: { $regex: email, $options: "i" } },
+        ]
         if (district) filters.district_db = { $regex: district, $options: "i" }
         if (state) filters.state_db = { $regex: state, $options: 'i' }
+        filters.isActive_db = true;
         // if (country) filters.country = { $regex: country, $options: 'i' }
         // if (hot) filters.hot = { $regex: hot, $options: "i" }
         // if (followUp) filters.followUp = { $regex: followUp, $options: "i" }
@@ -306,25 +326,25 @@ const filterRawData = async (req, res) => {
         // if (lost) filters.lost = { $regex: lost, $options: "i" }
         // if (dateFrom && dateTo) filters.date_db = { $gte: dateFrom, $lte: dateTo }
 
-        let result, totalCount,db;
+        let result, totalCount, db;
         const totalCountUser = await clientSubscriptionModel.countDocuments(filters)
         const totalCountClient = await clientModel.countDocuments(filters)
 
         if (totalCountUser > 0 && clientId || totalCountUser > 0 && clientName || totalCountUser > 0 && opticalName || totalCountUser > 0 && mobile) {
             result = await clientSubscriptionModel.find(filters).sort({ client_id: 1 }).skip(skip).limit(limit)
             totalCount = await clientSubscriptionModel.countDocuments(filters)
-            db="User Database"
+            db = "User Database"
         } else if (totalCountClient > 0 && clientId || totalCountClient > 0 && clientName || totalCountClient > 0 && opticalName || totalCountClient > 0 && mobile) {
             result = await clientModel.find(filters).sort({ client_id: 1 }).skip(skip).limit(limit)
             totalCount = await clientModel.countDocuments(filters)
-            db="Client Database"
+            db = "Client Database"
         } else {
             result = await rawDataModel.find(filters).sort({ client_id: 1 }).skip(skip).limit(limit)
             totalCount = await rawDataModel.countDocuments(filters)
-            db="Raw Database"
+            db = "Raw Database"
         }
 
-        res.status(200).json({ message: "Client details filter result", page: Number(page), limit: limit, totalCount: totalCount, resultCount: result.length, result , db })
+        res.status(200).json({ message: "Client details filter result", page: Number(page), limit: limit, totalCount: totalCount, resultCount: result.length, result, db })
     } catch (err) {
         console.log("internal error", err)
         res.status(500).json({ message: "internal error", err: err.message })
@@ -366,6 +386,132 @@ const rawDBExcelUploadData = async (req, res) => {
     }
 }
 
+const getLastGlobalId = async (req, res) => {
+    try {
+        const getLastId = await getLastNextValue("rawSerialNumber")
+        res.status(200).json({ message: "getLastId", getLastId });
+        console.log("getLastId", getLastId)
+    } catch (err) {
+        console.log("internal error", err)
+        res.status(500).json({ message: "internal error", err: err.message })
+    }
+}
+
+const gilterDataFromAllDB = async (req, res) => {
+    try {
+        const { clientId, clientName, opticalName, address, mobile, email, district, state, country, hot,
+            followUp, demo, installation, product, defaulter, recovery, lost, dateFrom, dateTo, clientType, pincode } = req.body;
+        const { page = 1 } = req.query;
+        const limit = 100;
+        const skip = (page - 1) * limit;
+        console.log("pincode", pincode)
+        const filters = {}
+
+        if (clientId) filters.client_id = clientId
+        if (pincode && pincode.length > 0) filters.pincode_db = { $in: pincode }
+        if (clientName) filters.client_name_db = { $regex: clientName, $options: "i" }
+        if (opticalName) {
+            filters.$or = [
+                { optical_name1_db: { $regex: opticalName, $options: "i" } },
+                { optical_name2_db: { $regex: opticalName, $options: "i" } },
+                { optical_name3_db: { $regex: opticalName, $options: "i" } },
+            ]
+        }
+        if (address) {
+            filters.$or = [
+                { address_1_db: { $regex: address, $options: "i" } },
+                { address_2_db: { $regex: address, $options: "i" } },
+                { address_3_db: { $regex: address, $options: "i" } },
+            ]
+        }
+        if (mobile) {
+            filters.$or = [
+                { mobile_1_db: { $regex: mobile, $options: "i" } },
+                { mobile_2_db: { $regex: mobile, $options: "i" } },
+                { mobile_3_db: { $regex: mobile, $options: "i" } },
+            ]
+        }
+        if (email) filters.$or = [
+            { email_1_db: { $regex: email, $options: "i" } },
+            { email_2_db: { $regex: email, $options: "i" } },
+            { email_3_db: { $regex: email, $options: "i" } },
+        ]
+        if (district) filters.district_db = { $regex: district, $options: "i" }
+        if (state) filters.state_db = { $regex: state, $options: 'i' }
+        filters.isActive_db = true;
+
+        //total counts
+        const rawCount = await rawDataModel.countDocuments(filters)
+        const clientCount = await clientModel.countDocuments(filters)
+        const userCount = await clientSubscriptionModel.countDocuments(filters)
+
+        const totalCount = userCount + clientCount + rawCount;
+
+        let remainingSkip = skip;
+        let remainingLimit = limit;
+
+        let r1 = [], r2 = [], r3 = [];
+
+        //user first 
+        if (remainingSkip < userCount) {
+            r1 = await clientSubscriptionModel.find(filters).sort({ client_id: 1 }).skip(remainingSkip).limit(remainingLimit);
+            remainingLimit -= r1.length;
+            remainingSkip = 0;
+        } else {
+            remainingSkip -= userCount;
+        }
+
+        //client next
+        if (remainingLimit > 0) {
+            if (remainingSkip < clientCount) {
+                r2 = await clientModel.find(filters).sort({ client_id: 1 }).skip(remainingSkip).limit(remainingLimit)
+                remainingLimit -= r2.length;
+                remainingSkip = 0;
+            } else {
+                remainingSkip -= clientCount;
+            }
+        }
+
+        //raw last 
+        if (remainingLimit > 0) {
+            if (remainingSkip < rawCount) {
+                r3 = await rawDataModel.find(filters).sort({ client_id: 1 }).skip(remainingSkip).limit(remainingLimit)
+            }
+        }
+        const merged = [...r1, ...r2, ...r3];
+        res.status(200).json({
+            message: "Search from all DB with pagination",
+            page: Number(page),
+            limit,
+            totalCount,
+            resultCount: merged.length,
+            result: merged,
+            counts: {
+                u: userCount,
+                c: clientCount,
+                r: rawCount,
+            },
+            db: "All Database",
+        });
+    } catch (err) {
+        console.log("internal error", err)
+        res.status(500).json({ message: "internal error", err: err.message })
+    }
+}
 
 
-module.exports = { rawDataDump, rawDBExcelUploadData, rawSampleFile, filterRawData, createNewRawDBRecord, getrawDataDump, getrawDataNewFormId, deactivateRawData, activateRawData }
+
+// const gilterDataFromAllDB= async(req,res)=>{
+//     try{
+//         const r3 = await rawDataModel.find({isActive_db:true}).sort({client_id:1 })
+//         const r2 = await clientModel.find({isActive_db:true}).sort({client_id:1 })
+//         const r1 = await clientSubscriptionModel.find({isActive_db:true}).sort({client_id:1 })
+
+//         res.status(200).json({message:"Search from all DB",r1,totalUserCount:r1.length,r2,totalClientCount:r2.length,r3,totalRawCount:r3.length})
+//     }catch(err){
+//          console.log("internal error",err)
+//         res.status(500).json({message:"internal error",err:err.message})
+//     }
+// }
+
+module.exports = { rawDataDump, rawDBExcelUploadData, rawSampleFile, filterRawData, createNewRawDBRecord, getrawDataDump, getrawDataNewFormId, deactivateRawData, activateRawData, getLastGlobalId, gilterDataFromAllDB }

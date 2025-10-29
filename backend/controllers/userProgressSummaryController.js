@@ -107,7 +107,7 @@ const getUserGraphReport = async (req, res) => {
 }
 
 //GET COUNT FROM CLIENT HISTORY DB USING MATCH AND GROUP
-cron.schedule('* * * * *', async () => {
+cron.schedule('59 23 * * *', async () => {
     try {
         const todayDate = new Date().toLocaleDateString("en-GB");
 
@@ -172,7 +172,7 @@ cron.schedule('* * * * *', async () => {
 });
 
 //CRON JOB USED FOR TOTAL ASSIGNED VALUES IN USERPROGRESSMODEL
-cron.schedule("* * * * *", async (req, res) => {
+cron.schedule("59 23 * * *", async (req, res) => {
     try {
         const today = new Date().toLocaleDateString("en-GB")
         const taskTypes = {
@@ -222,7 +222,7 @@ cron.schedule("* * * * *", async (req, res) => {
 })
 
 //CRON JOB USED FOR DIALY REPORT OF GAOLS LIKE INSTALLTION, DEMO...
-cron.schedule("* * * * *", async () => {
+cron.schedule("59 23 * * *", async () => {
     try {
         const today = new Date().toLocaleDateString("en-GB")
         const userProgress = await userProgressSummaryModel.find({ date_db: today })
@@ -317,7 +317,7 @@ cron.schedule("* * * * *", async () => {
 })
 
 // CRON JOB USER FOR WEEKLY REPORT
-cron.schedule("* * * * *", async () => {
+cron.schedule("59 23 * * *", async () => {
     try {
         const lastSevenDay = new Date()
         lastSevenDay.setDate(lastSevenDay.getDate() - 6);
@@ -392,7 +392,7 @@ cron.schedule("* * * * *", async () => {
 })
 
 // CRON JOB USER FOR MONTHLY REPORT
-cron.schedule("* * * * *", async () => {
+cron.schedule("59 23 * * *", async () => {
     try {
         const tz = "Asia/Kolkata"
         const startOfMonth = moment.tz(tz).startOf("month").toDate();
@@ -462,7 +462,7 @@ cron.schedule("* * * * *", async () => {
 })
 
 // CRON JOB USER GRAPH
-cron.schedule("* * * * *", async () => {
+cron.schedule("59 23 * * *", async () => {
     try {
         const result = await userDailyProgress.find().sort({ date_db: 1 })
         // console.log("result", result)

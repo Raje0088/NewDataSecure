@@ -7,69 +7,23 @@ const cron = require("node-cron");
 
 const saveUserForm = async (req, res) => {
     try {
-        const { assignTask, requestTask, productTask, assignToId, assignById, deadline } = req.body;
+        const { assignTask, requestTask, productTask, assignToId, assignById, deadline, date, selectedExcel } = req.body;
         console.log("Deadline", deadline);
-        console.log("assigntask", assignTask, requestTask)
+        console.log("assigntask", assignTask, requestTask, productTask, selectedExcel)
 
-        const assignTasks = assignTask.map(t => ({
-            title: t.title.toLowerCase(),
-            num: t.num,
-            completed: t.completed
-        }));
-        const requestTasks = requestTask.map(t => ({
-            title: t.title.toLowerCase(),
-            num: t.num,
-            text: t.text,
-            completed: t.completed
-        }));
-
-
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-
-        const todayDate = `${yyyy}-${mm}-${dd}`;
-
-        let deadlineTime = deadline || "23:59:00";
-
-        // Smart cleanup and handling
-        if (deadline && (deadline.toLowerCase().includes("am") || deadline.toLowerCase().includes("pm"))) {
-
-            // Remove extra spaces, ensure proper split
-            const parts = deadline.trim().split(/\s+/); // Splits by one or more spaces
-            const time = parts[0];
-            const modifier = parts[1]?.toLowerCase(); // safe check for AM/PM
-
-            if (time && modifier) {
-                let [hours, minutes, seconds] = time.split(":").map(Number);
-                if (modifier === "pm" && hours < 12) hours += 12;
-                if (modifier === "am" && hours === 12) hours = 0;
-
-                deadlineTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            }
-        }
-
-        const finalDateString = `${todayDate}T${deadlineTime}`;
-        const fullDeadline = new Date(finalDateString);
-
-        console.log("✅ finalDateString:", finalDateString);
-        console.log("✅ fullDeadline:", fullDeadline);
 
         const result = await userFormModel.create({
-            assign_task: assignTasks,
-            request_task: requestTasks,
+            assign_task: assignTask,
+            request_task: requestTask,
             product_task: productTask,
             assignById_db: assignById,
             assignToId_db: assignToId,
-            date_db: new Date().toLocaleDateString('en-GB'),
-            time_db: new Date().toLocaleTimeString(),
-            deadline_db: fullDeadline.toLocaleTimeString(),
-            cron_deadline_db: fullDeadline,
+            date_db: date,
+            time_db: deadline,
+            deadline_db: deadline,
+            cron_deadline_db: deadline,
+            excelId_db: selectedExcel,
         })
-        console.log("🕐 fullDeadline", fullDeadline.toString());
-        console.log("🕐 Date now", new Date().toString());
-
         // result.save();
         const io = getIO();
         io.to(assignToId).emit("extra-task-assigned", {
@@ -140,16 +94,15 @@ const deleteUserForm = async (req, res) => {
     }
 
 }
-const searchUserFormId = async (req, res) => {
+const searchUserTaskFormId = async (req, res) => {
     try {
         const generateUniqueId = req.params.id;
         console.log("generateUniqueId", generateUniqueId)
         const result = await userFormModel.findOne({
             assignToId_db: generateUniqueId,
-            date_db: new Date().toLocaleDateString("en-GB"),
-        }).sort({ time_db: -1 })
+        }).sort({ _id: -1 })
         console.log("result", result)
-        res.status(200).json({ message: "User id  found", result });
+        res.status(200).json({ message: "User Form  found", result });
 
     } catch (err) {
         console.log("User id Not found")
@@ -228,7 +181,7 @@ const getTotalCountDetailsForUserForm = async (req, res) => {
     }
 }
 
-cron.schedule("* * * * *", async () => {
+cron.schedule("30 * * * *", async () => {
     try {
         const taskTypes = {
             "demo_db": "demo_completed_db",
@@ -250,19 +203,19 @@ cron.schedule("* * * * *", async () => {
                     }
                 },
                 {
-                    $unwind:"$product_db"
+                    $unwind: "$product_db"
                 },
                 {
-                    $group:{
-                        _id:{
-                            userId:"$assignTo",
-                            product:"$product_db.value"
+                    $group: {
+                        _id: {
+                            userId: "$assignTo",
+                            product: "$product_db.value"
                         },
-                        count:{$sum:1}
+                        count: { $sum: 1 }
                     }
                 }
             ])
-            console.log("aggragateResult",aggregationResult)
+            console.log("aggragateResult userTaskController", aggregationResult)
         }
 
 
@@ -270,5 +223,17 @@ cron.schedule("* * * * *", async () => {
         console.log("internal error", err)
     }
 })
+ 
+const getUserAssignFormHistory = async (req, res) => {
+    try {
+        const userId = req.params.id
+        console.log("userId",userId)
+        const result = await userFormModel.find({ assignToId_db: userId }).sort({ _id: -1 }).limit(10);
+        res.status(200).json({ message: "User Form History", result })
+    } catch (err) {
+        console.log("internal error", err)
+        res.status(500).json({ message: "internal error", err: err.message })
+    }
+}
 
-module.exports = { saveUserForm, updateUserForm, deleteUserForm, searchUserFormId, getTotalCountDetailsForUserForm } 
+module.exports = { saveUserForm, updateUserForm, deleteUserForm, searchUserTaskFormId, getTotalCountDetailsForUserForm, getUserAssignFormHistory } 

@@ -17,15 +17,10 @@ const userFormSchema = new mongoose.Schema({
         min: Number,
         max: Number,
     }],
+    excelId_db: { title: String, excelId: String },
     assignById_db: { type: String },
     assignToId_db: { type: String },
-    date_db: String,
-    time_db: String,
-    deadline_db: String,
-    cron_deadline_db: String,
-    isLocked_db: { type: Boolean, default: false },
-    goal_status_db: { type: String, default: "active" },
+},{timestamps:true})
 
-})
 const userFormModel = mongoose.model("userFormModel", userFormSchema);
 module.exports = { userFormModel };

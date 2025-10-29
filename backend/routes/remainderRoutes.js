@@ -1,7 +1,9 @@
 const express = require("express")
 const router = express.Router()
-const {getRemainders,getCompleteRemainer} = require("../controllers/remainderController")
+const {getRemainders,getCompleteRemainer,getAllRemainderForAssignTask,getUserWiseReminder} = require("../controllers/remainderController")
 
 router.get("/remainder",getRemainders)
-router.put("/status/:id",getCompleteRemainer)
+router.get("/status",getCompleteRemainer)
+router.get("/get-assign-remainder",getAllRemainderForAssignTask)
+router.get("/user-reminder",getUserWiseReminder)
 module.exports = router

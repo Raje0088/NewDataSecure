@@ -10,9 +10,8 @@ const generateUserId = async (role, createdById) => {
     console.log("Existing user count for this combo:", count);
     const numberCount = String(count + 1).padStart(2, '0');
     let prefix = '';
-    if (role === 'ADMIN') prefix = `A${numberCount}_${createdById}`;
-    else if (role === 'EXECUTIVE') prefix = `E${numberCount}_${createdById}`
-    else if (role === "MANAGER") prefix = `M${numberCount}_${createdById}`
+    const firstLetter = role[0]
+    prefix = `${firstLetter}${numberCount}_${createdById}`;
 
 console.log("Generated Prefix:", prefix);
     return prefix;

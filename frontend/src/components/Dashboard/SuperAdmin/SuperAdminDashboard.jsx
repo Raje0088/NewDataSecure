@@ -1,26 +1,28 @@
+import styles from "./SuperAdminDashboard.module.css";
 import React, { useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import styles from "./SuperAdminDashboard.module.css";
 import { useState } from "react";
 import socket from "../../../socketio/socket";
 import { useEffect } from "react";
 import axios from "axios";
 import MessagePortal from "../../../UI/MessagePortal";
-import HomeNavigator from "../../../Pages/HomeNavigator";
 import { AuthContext } from "../../../context-api/AuthContext";
 import { useContext } from "react";
 import { MdOutlineFileDownload } from "react-icons/md";
 import { base_url } from "../../../config/config";
 import Remainder from "../../../Pages/Remainder";
 import { IoMenu } from "react-icons/io5";
+import AssignWork from "../../AssignWork";
+import CreateTaskForm from "../../CreateTaskForm";
+import UserConfiguration from "../../UserConfiguration";
+import MasterDatabase from "../../MasterDatabase";
 
 const SuperAdminDashboard = () => {
-  const { userLoginId } = useContext(AuthContext);
+  const { userLoginId ,userPermissions} = useContext(AuthContext);
   // const [userLoginId,setUserLoginId] = useState("SA")
   const navigate = useNavigate();
 
   const fileRef = useRef(null);
-  const [membersList, setMembersList] = useState([]);
   const [stateList, setStateList] = useState([]);
   const [districtList, setDistrictList] = useState([]);
   const [selectRawFile, setSelectRawFile] = useState(null);
@@ -45,6 +47,8 @@ const SuperAdminDashboard = () => {
   const [remainder, setRemainder] = useState([]);
   const [remainderTotalCount, setRemainderTotalCount] = useState(0);
   const [buttonTranverseId, setButtonTranverseId] = useState(null);
+  const [selectedClients, setSelectedClients] = useState([]);
+  // const [buttonTranverseId, setButtonTranverseId] = useState(null);
   const [toggleMenu, setToggleMenu] = useState(false);
 
   const fetchRemainder = async () => {
@@ -57,118 +61,83 @@ const SuperAdminDashboard = () => {
       console.log("internal error", err);
     }
   };
+  
   useEffect(() => {
     fetchRemainder();
   }, []);
 
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const getPincode = await axios.get(
-          `${base_url}/pincode/search-getplaces`,
-          {
-            params: {
-              state: filteredBy.state,
-              district: filteredBy.district,
-            },
-          }
-        );
-        const regionData = getPincode.data;
-        const uniqueState = regionData.statename;
-        const uniquedistrict = regionData.districtname;
-        setStateList(uniqueState);
-        setDistrictList(uniquedistrict);
-      } catch (err) {
-        console.error("Error fetching pincodes:", err);
-      }
-    };
-    fetch();
-  }, [filteredBy.state, filteredBy.district]);
+  // useEffect(() => {
+  //   socket.on("connect", () => {
+  //     console.log("✅ Socket connected:", socket.id);
 
-  useEffect(() => {
-    socket.on("connect", () => {
-      // console.log("✅ Socket connected:", socket.id);
+  //     socket.emit("joinRoom", userLoginId);
+  //     console.log("✅ joinRoom emitted with:", userLoginId);
+  //   });
 
-      socket.emit("joinRoom", superAdminId);
-      // console.log("✅ joinRoom emitted with:", executiveId);
-    });
+  //   socket.on("assignTask", (data) => {
+  //     console.log("🔥 Received taskAssigned:", data);
+  //     setTaskList((prev) => ({ ...prev, ...data }));
+  //     alert(data.message);
+  //   });
 
-    socket.on("taskAssigned", (data) => {
-      console.log("🔥 Received taskAssigned:", data);
-      setTaskList((prev) => ({ ...prev, ...data }));
-      alert(data.message);
-    });
+  //   socket.on("remainder", (data) => {
+  //     console.log("data", data.length);
+  //     setRemainderTotalCount(data.length);
+  //     setRemainder(data);
+  //   });
 
-    socket.on("remainder", (data) => {
-      console.log("data", data.length);
-      setRemainderTotalCount(data.length);
-      setRemainder(data);
-    });
-
-    return () => {
-      socket.off("taskAssigned");
-      socket.off("connect");
-    };
-  }, []);
+  //   return () => {
+  //     socket.off("assignTask");
+  //     socket.off("connect");
+  //   };
+  // }, []);
 
   //fetching members
-  useEffect(() => {
-    const fetchUser = async () => {
-      const userDetails = await axios.get(`${base_url}/users/getUser`);
-      const users = userDetails.data.usersdf;
-      const usersId = users
-        .filter((ids) => ids.generateUniqueId !== "SA")
-        .map((ids) => ids.generateUniqueId);
-      console.log("userIds", usersId);
-      setMembersList(usersId);
-    };
-    fetchUser();
-  }, []);
 
-  const goToClientPage = () => {
-    const userId = "SA";
-    navigate("/client-page", { state: { userId } });
-  };
+  // const goToClientPage = () => {
+  //   const userId = "SA";
+  //   navigate("/client-page", { state: { userId } });
+  // };
   const goToSearchPage = () => {
     navigate("/search-client");
   };
 
-  const handleChange = (e, name) => {
-    console.log("heelo", name, e.target.value);
-    setFilteredBy((prev) => ({
-      ...prev,
-      [name]: e.target.value,
-    }));
-  };
+  // const handleChange = (e, name) => {
+  //   console.log("heelo", name, e.target.value);
+  //   setFilteredBy((prev) => ({
+  //     ...prev,
+  //     [name]: e.target.value,
+  //   }));
+  // };
 
-  const assignTaskTo = async () => {
-    try {
-      const result = await axios.post(
-        `${base_url}/task/task-assign`,
-        {
-          assignBy: userLoginId,
-          assignTo: filteredBy.member,
-        },
-        {
-          params: {
-            state: filteredBy.state || undefined,
-            district: filteredBy.district || undefined,
-            businessName: filteredBy.businessName.trim() || undefined,
-            mobile: filteredBy.mobile || undefined,
-          },
-        }
-      );
-      console.log(
-        `task is assigned to ${filteredBy.member} sucessfully`,
-        result
-      );
-    } catch (err) {
-      console.log("internal error", err.response?.data?.message);
-      if (err.response?.data?.message === "No matching raw data found") {
-        alert(err.response?.data?.message);
-      }
-    }
-  };
+  // const assignTaskTo = async () => {
+  //   try {
+  //     const result = await axios.post(
+  //       `${base_url}/task/task-assign`,
+  //       {
+  //         assignBy: userLoginId,
+  //         assignTo: filteredBy.member,
+  //       },
+  //       {
+  //         params: {
+  //           state: filteredBy.state || undefined,
+  //           district: filteredBy.district || undefined,
+  //           businessName: filteredBy.businessName.trim() || undefined,
+  //           mobile: filteredBy.mobile || undefined,
+  //         },
+  //       }
+  //     );
+  //     console.log(
+  //       `task is assigned to ${filteredBy.member} sucessfully`,
+  //       result
+  //     );
+  //   } catch (err) {
+  //     console.log("internal error", err.response?.data?.message);
+  //     if (err.response?.data?.message === "No matching raw data found") {
+  //       alert(err.response?.data?.message);
+  //     }
+  //   }
+  // };
 
   // const handleViewExcel = async()=>{
   //   try{
@@ -189,6 +158,7 @@ const SuperAdminDashboard = () => {
     setStatusMessage("Uploading file...");
     setUploadProgess(0);
     setImportButtonRawDB(true);
+     console.log("setSelectRawFile", selectRawFile?.name);
     try {
       // STEP 1: Upload the file
       const uploadRes = await axios.post(
@@ -206,7 +176,7 @@ const SuperAdminDashboard = () => {
 
       // ✅ STEP 2: Use full backend URL for EventSource
       const eventSource = new EventSource(
-        `${base_url}/raw-data/stream-insert/${filename}?userId=${userLoginId}`
+        `${base_url}/raw-data/stream-insert/${filename}?userId=${userLoginId}&originalName=${encodeURIComponent(selectRawFile?.name)}`
       );
 
       eventSource.addEventListener("progress", (event) => {
@@ -257,7 +227,7 @@ const SuperAdminDashboard = () => {
   };
 
   // console.log("import", importButtonRawDB);
-  // console.log("portalmsg", portalMsg);
+ 
   const goToExcelView = () => {
     navigate("/view-excel");
   };
@@ -288,7 +258,7 @@ const SuperAdminDashboard = () => {
           />
         </div>
         <header className={styles.header}>
-          <h3>{userLoginId} Dashboard</h3>
+          <h3>{userPermissions.userName} Dashboard</h3>
         </header>
         <div className={styles["box-div"]}>
           <div className={`${styles.box1} ${toggleMenu ? styles.open : ""}`}>
@@ -320,11 +290,24 @@ const SuperAdminDashboard = () => {
             >
               Assign Task
             </button>
-            <button>Master Data</button>
+            <button 
+                          style={{
+                backgroundColor:
+                  isReport === true && buttonTranverseId === "MasterData"
+                    ? "hsl(241, 100%, 81%)"
+                    : "",
+              }}
+              onClick={() => {
+                setIsReport((prev) => !prev);
+                setButtonTranverseId("MasterData");
+              }}
+            >Master Data</button>
             <button
               style={{
-                backgroundColor: isReport === true &&
-                  buttonTranverseId === "Report" ? "hsl(241, 100%, 81%)" : "",
+                backgroundColor:
+                  isReport === true && buttonTranverseId === "Report"
+                    ? "hsl(241, 100%, 81%)"
+                    : "",
               }}
               onClick={() => {
                 setIsReport((prev) => !prev);
@@ -336,8 +319,8 @@ const SuperAdminDashboard = () => {
             <div className={styles.notification}>
               <button
                 style={{
-                  backgroundColor: isRemainder === true &&
-                    buttonTranverseId === "Remainder"
+                  backgroundColor:
+                    isRemainder === true && buttonTranverseId === "Remainder"
                       ? "hsl(241, 100%, 81%)"
                       : "",
                 }}
@@ -346,7 +329,7 @@ const SuperAdminDashboard = () => {
                   setButtonTranverseId("Remainder");
                 }}
               >
-                Reminder 
+                Reminder
                 {remainderTotalCount > 0 && (
                   <span className={styles["notification-icon"]}>
                     {remainderTotalCount}
@@ -366,66 +349,9 @@ const SuperAdminDashboard = () => {
             {/* ===========================ADD BUTTON=============================== */}
 
             {buttonTranverseId === "Assign Task" && (
-              <div className={styles["show-content-div"]}>
-                {" "}
-                Select Executive{" "}
-                <select
-                  name=""
-                  id=""
-                  value={filteredBy.member}
-                  onChange={(e) => {
-                    handleChange(e, "member");
-                  }}
-                >
-                  <option value="">--select</option>
-                  {membersList.map((item) => (
-                    <option value={item}>{item}</option>
-                  ))}
-                </select>
-                <br />
-                Select State{" "}
-                <select
-                  name=""
-                  id=""
-                  value={filteredBy.state}
-                  onChange={(e) => {
-                    handleChange(e, "state");
-                  }}
-                >
-                  <option value="">--select--</option>
-                  {stateList.map((list) => (
-                    <>
-                      <option value={list}>{list}</option>
-                    </>
-                  ))}
-                </select>
-                Select District{" "}
-                <select
-                  name=""
-                  id=""
-                  value={filteredBy.district}
-                  onChange={(e) => {
-                    handleChange(e, "district");
-                  }}
-                >
-                  <option value="">--select--</option>
-                  {districtList.map((list) => (
-                    <>
-                      <option value={list}>{list}</option>
-                    </>
-                  ))}
-                </select>
-                Business name{" "}
-                <input
-                  type="text"
-                  value={filteredBy.businessName}
-                  onChange={(e) => {
-                    handleChange(e, "businessName");
-                  }}
-                />
-                <br />
-                <button onClick={assignTaskTo}>Create Task</button>
-              </div>
+              <>
+                <CreateTaskForm />
+              </>
             )}
             {/* ===========================ADD BUTTON=============================== */}
             {buttonTranverseId === "Import" && (
@@ -502,6 +428,12 @@ const SuperAdminDashboard = () => {
                 />
               </div>
             )}
+            {/* ===========================UserConfiguration=============================== */}
+            {buttonTranverseId === "UserConfiguration" && (
+              <div className={styles.remainderdiv}>
+                <UserConfiguration />
+              </div>
+            )}
             {buttonTranverseId === "Report" && (
               <div className={styles["generate-report-div"]}>
                 <div className={styles.btndiv}>
@@ -512,6 +444,9 @@ const SuperAdminDashboard = () => {
                   <h2>Work in Progress...</h2>
                 </div>
               </div>
+            )}
+            {buttonTranverseId === "MasterData" && (
+              <MasterDatabase />
             )}
           </div>
           <div className={`${styles.box2} ${toggleMenu ? styles.open : ""}`}>
@@ -527,7 +462,6 @@ const SuperAdminDashboard = () => {
             >
               Search
             </button>
-            <button>Add</button>
             <button>Delete</button>
             <div className={styles.selects}>
               <select name="" id="">
@@ -545,6 +479,18 @@ const SuperAdminDashboard = () => {
                 </option>
               </select>
             </div>
+            <button
+              style={{
+                backgroundColor:
+                  buttonTranverseId === "UserConfiguration" ? "hsl(241, 100%, 81%)" : "",
+              }}
+              onClick={() => {
+                setIsImport((prev) => !prev);
+                setButtonTranverseId("UserConfiguration");
+              }}
+            >
+              User Configuration
+            </button>
             <button>Calender</button>
             <button>Upload</button>
             <button>Download</button>

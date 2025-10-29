@@ -6,11 +6,9 @@ import { useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../context-api/AuthContext";
 import { base_url } from "../config/config";
-import Spinner from "react-bootstrap/Spinner";
-import Button from "react-bootstrap/Button";
 
 const Login = () => {
-  const { setUserLoginId } = useContext(AuthContext);
+  const { setUserLoginId, setUserPermission } = useContext(AuthContext);
   const navigate = useNavigate();
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +30,6 @@ const Login = () => {
         return setMessage("Password required");
       }
       const result = await axios.post(
-        // "http://localhost:3000/auth/login",
         `${base_url}/auth/login`,
         {
           userId: userId,
@@ -44,10 +41,23 @@ const Login = () => {
           },
         }
       );
-      console.log("result", result.data);
+      console.log("login data", result.data);
       if (result.data.message === "Password Match") {
         setUserLoginId(result.data.userLoginId);
-        navigate("/");
+        setUserPermission(result.data.permission);
+        switch (result?.data?.permission?.roleType) {
+          case "Superadmin":
+            navigate("/");
+            break;
+          case "Admin":
+            navigate("/admin-dashboard");
+            break;
+          case "Executive":
+            navigate("/user-dashboard");
+            break;
+          default:
+            navigate("/login");
+        }
       }
     } catch (err) {
       console.log("internal error", err);
@@ -73,7 +83,7 @@ const Login = () => {
             id="userid"
             value={userId}
             onChange={(e) => {
-              setUserId(e.target.value.trim().toUpperCase());
+              setUserId(e.target.value);
             }}
           />
         </span>
@@ -91,7 +101,7 @@ const Login = () => {
         </span>
         <span className={styles.btn}>
           {isLoading ? (
-            <strong className={styles.spinner} ></strong>
+            <strong className={styles.spinner}></strong>
           ) : (
             <button type="submit">Login</button>
           )}

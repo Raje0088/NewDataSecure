@@ -13,7 +13,7 @@ const rawDataSchema = new mongoose.Schema({
     address_3_db: String,
     district_db: String,
     state_db: String,
-    country_db:String,
+    country_db: String,
     pincode_db: String,
     mobile_1_db: String,
     mobile_2_db: String,
@@ -22,13 +22,22 @@ const rawDataSchema = new mongoose.Schema({
     email_2_db: String,
     email_3_db: String,
     followup_db: String,
-    isSkip_db:{type:String, default:false},
+    isSkip_db: { type: String, default: false },
     database_status_db: {
         type: String,
-        enum: ["client_db", "raw_db", "user_db"],
-        default: "raw_db",
+        enum: ["Client", "Raw", "User"],
+        default: "Raw",
     },
-    dumpBy_db:String,
+    dumpBy_db: String,
+    remark_db:String,
+    master_data_db: {
+        assignTo: String,
+        excelId: { type: String },
+        state: { type: [String], default: [] },
+        district: [{ name: String, total: Number }],
+        pincode: { type: [String], default: [] },
+        clientIds: { type: [String], default: [] },
+    }
 })
 
 const rawDataModel = mongoose.model("rawDataModel", rawDataSchema);

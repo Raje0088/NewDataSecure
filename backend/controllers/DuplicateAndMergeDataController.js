@@ -247,7 +247,7 @@ const findDuplicateRecordBySearch = async (req, res) => {
         }
 
         const matchOrConditions = [];
-
+        matchOrConditions.push({isActive_db:true})
         if (clientId) {
             matchOrConditions.push({ client_id: clientId });
         }
@@ -295,7 +295,7 @@ const findDuplicateRecordBySearch = async (req, res) => {
                 ]
             });
         }
-
+        
         // Combine OR conditions
         const filters = matchOrConditions.length > 0 ? { $and: matchOrConditions } : {};
 
@@ -370,8 +370,17 @@ const mergeAndDelete = async (req, res) => {
 const deleteRawDBClient = async (req, res) => {
     try {
         const Id = req.params.id;
-        console.log("id", Id)
-        const result = await rawDataModel.deleteOne({ client_id: Id })
+        console.log("id------", Id)
+        const result = await rawDataModel.findOneAndUpdate({ client_id: Id },
+            {
+                $set:{
+                    isActive_db:false,
+                }
+            },
+            {
+                new:true,
+            }
+        )
 
         console.log(`merge completed in clientId ${Id}`, result)
         res.status(200).json({ message: `deletion completed in clientId ${Id}` })

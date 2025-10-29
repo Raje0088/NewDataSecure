@@ -11,4 +11,4 @@ module.exports = {
 
 //  Why 2 Files?
 // socketio.js	-> Sets up the initial socket server (on app.listen)
-// socketInstance.js ->	Allows any controller or route to send socket events using getIO()
+// socketInstance.js ->	Allows any controller or route to send socket events using getIO() 

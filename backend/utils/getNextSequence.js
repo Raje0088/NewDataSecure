@@ -1,6 +1,7 @@
 const { Counter } = require("../models/counterModel")
 
 //get next counter uniquely is DYNAMIC for any field like srno, client visiting id, invoice no, etc. --> from CounterModel
+//in counterKey just name any NAME you want and for that new document create in db to track its counter
 const getNextGobalCounterSequence = async (counterKey) => {
     const counter = await Counter.findOneAndUpdate(
         { _id: counterKey },
@@ -24,6 +25,14 @@ const getNextGobalCounterSequenceForRaw = async (counterKey, newValue) => {
     return counter.sequence_value;
 }
 
+const getLastNextValue = async(counterKey) => {
+        const lastValue = await Counter.findOne({_id:counterKey})
+            if (!lastValue || lastValue.sequence_value === undefined) {
+        throw new Error("Failed to get sequene value")
+    }
+        return lastValue.sequence_value + 1;
+}
+
 // why rawDataModel.findOne().sort({clientid:-1}) failed ? 
 // becoz if two request send at same time then same id will return lead to error
-module.exports = { getNextGobalCounterSequence, getNextGobalCounterSequenceForRaw }
+module.exports = { getNextGobalCounterSequence, getNextGobalCounterSequenceForRaw ,getLastNextValue }

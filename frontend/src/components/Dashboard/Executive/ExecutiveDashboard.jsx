@@ -5,23 +5,31 @@ import { useState } from "react";
 import socket from "../../../socketio/socket";
 import { useEffect } from "react";
 import axios from "axios";
-import AssignWork from "../DashboardComponent/AssignWork";
+import AssignWork from "../../AssignWork";
 import ScheduleOptima from "../DashboardComponent/ScheduleOptima";
 import ExtraTaskRequest from "../DashboardComponent/ExtraTaskRequest";
 import { AuthContext } from "../../../context-api/AuthContext";
 import { base_url } from "../../../config/config";
+import { RequestModalContext } from "../../../context-api/GlobalModalContext";
+import Remainder from "../../../Pages/Remainder";
+import QuickTeritoryFlash from "../../QuickTeritoryFlash";
 
 const ExecutiveDashboard = () => {
   const navigate = useNavigate();
-  const {userLoginId} = useContext(AuthContext)
-  // const [userLoginId, setUserLoginId] = useState("E02_SA");
-  const [taskList, setTaskList] = useState({});
+  const { userLoginId, userPermissions } = useContext(AuthContext);
+  const { handleOpenModal, handleCloseModal, modalContent } =
+    useContext(RequestModalContext);
   const [checkAssignWork, setCheckAssignWork] = useState(false);
   const [checkScheduleOptima, setCheckScheduleOptima] = useState(true);
-  const [taskStatus, setTaskStatus] = useState("pending");
   const [extraTask, setExtraTask] = useState([]);
   const [checkExtraTask, setCheckExtraTask] = useState(false);
-  const [showExtraTask, setShowExtraTask] = useState(false);
+  const [showExtraTask, setShowExtraTask] = useState(true);
+  const [taskList, setTaskList] = useState([]);
+  const [assigntaskNotify, setAssignTaskNotify] = useState(0);
+  const [buttonTranverseId, setButtonTranverseId] = useState(null);
+  const [isRemainder, setIsRemainder] = useState(false);
+  const [remainderTotalCount, setRemainderTotalCount] = useState(0);
+  const [remainder, setRemainder] = useState([]);
 
   useEffect(() => {
     if (!userLoginId) return alert("no user login id available");
@@ -31,39 +39,41 @@ const ExecutiveDashboard = () => {
       // console.log("✅ joinRoom emitted with:", executiveId);
     });
 
-    socket.on("taskAssigned", (data) => {
+    socket.on("assignTask", (data) => {
       console.log("🔥 Received taskAssigned:", data);
-      setTaskList((prev) => ({ ...prev, ...data }));
-      fetchTask(); // ✅ refresh full list
-      alert(data.message);
+      setAssignTaskNotify(data.totalTask);
+      setTaskList(data.result);
     });
 
     socket.on("extra-task-assigned", (data) => {
       console.log("🔥 Received Extra-taskAssigned:", data);
       setExtraTask(data.newTask);
       setCheckExtraTask(true);
-      fetchTask(); // ✅ refresh full list
       alert(data.message);
     });
     return () => {
-      socket.off("taskAssigned");
+      socket.off("assignTask");
       socket.off("extra-task-assigned");
       socket.off("connect");
     };
   }, [userLoginId]);
 
-  const fetchTask = async () => {
-    const result = await axios.get(
-      `${base_url}/task/get-clientids-assign-by-to/${userLoginId}?taskStatus=${taskStatus}`
-    );
-    const data = result.data;
-    // console.log("task data", data);
-    setTaskList(data);
-  };
-
   useEffect(() => {
+    const fetchTask = async () => {
+      try {
+        const result = await axios.get(
+          `${base_url}/task/get-assign-task/${userLoginId}`
+        );
+        const data = result.data?.result;
+        console.log("assing task", result);
+        setTaskList(data);
+        setAssignTaskNotify(data?.length);
+      } catch (err) {
+        console.log("internal error", err);
+      }
+    };
     fetchTask();
-  }, [taskStatus]);
+  }, [socket]);
 
   useEffect(() => {
     const fetchExtraTask = async () => {
@@ -74,18 +84,31 @@ const ExecutiveDashboard = () => {
         setExtraTask(result.data.result);
         setCheckExtraTask(true);
       }
-      console.log("result bolte", result.data.result);
+      // console.log("result bolte", result.data.result);
     };
     fetchExtraTask();
   }, []);
 
-  useEffect(() => {
-    console.log("🧠 Updated Extra Task State:", extraTask);
-  }, [extraTask]);
-
   const handleCheckExtraTask = () => {
     setShowExtraTask(true); // this will show pop up
   };
+
+  const fetchRemainder = async () => {
+    try {
+      const result = await axios.get(`${base_url}/remainders/user-reminder`, {
+        params: { userId: userLoginId },
+      });
+      console.log("result", result.data.result);
+      setRemainder(result.data.result);
+      setRemainderTotalCount(result.data.result.length);
+    } catch (err) {
+      console.log("internal error", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchRemainder();
+  }, [userLoginId]);
 
   const goToClientPage = (taskdata) => {
     const userId = "E02_SA";
@@ -95,70 +118,93 @@ const ExecutiveDashboard = () => {
     <div className={styles.main}>
       <div className={styles["main-content"]}>
         <header className={styles.header}>
-          <h3>{userLoginId} Dashboard</h3>
+          <h3>{userPermissions.userName} Dashboard</h3>
         </header>
         <div className={styles["box-div"]}>
           <div className={styles.box}>
             <button
+              style={{
+                backgroundColor:
+                  buttonTranverseId === "Schedule Optima"
+                    ? "hsl(241, 100%, 81%)"
+                    : "",
+              }}
               onClick={() => {
-                setCheckScheduleOptima((prev) => !prev);
+                setButtonTranverseId("Schedule Optima");
               }}
             >
               Schedule Optima
             </button>
             <button
-              onClick={() => {
-                setCheckAssignWork((prev) => !prev);
+              style={{
+                backgroundColor:
+                  buttonTranverseId === "Assign Work"
+                    ? "hsl(241, 100%, 81%)"
+                    : "",
+                position: "relative",
               }}
-              style={{ position: "relative" }}
+              onClick={() => {
+                setButtonTranverseId("Assign Work");
+              }}
             >
               Assign Work
-              {taskList.count > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: "0px",
-                    right: "5px",
-                    background: "red",
-                    borderRadius: "100%",
-                    width: "20px",
-                    height: "20px",
-                    color: "white",
-                  }}
-                >
-                  {taskList.count}
-                </span>
+              {assigntaskNotify > 0 && (
+                <span className={styles.highlight}>{assigntaskNotify}</span>
               )}
             </button>
             <button>Master Data</button>
             <button>Report</button>
-            <button>Reminder</button>
+            <div className={styles.notification}>
+              <button
+                style={{
+                  backgroundColor:
+                    isRemainder === true && buttonTranverseId === "Remainder"
+                      ? "hsl(241, 100%, 81%)"
+                      : "",
+                }}
+                onClick={() => {
+                  setIsRemainder((prev) => !prev);
+                  setButtonTranverseId("Remainder");
+                }}
+              >
+                Reminder
+                {remainderTotalCount > 0 && (
+                  <span className={styles["notification-icon"]}>
+                    {remainderTotalCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
+
           <div className={styles["show-content"]}>
-            {checkAssignWork && (
-              <AssignWork
-                taskList={taskList}
-                goToClientPage={goToClientPage}
-                taskStatus={taskStatus}
-                setTaskStatus={setTaskStatus}
-              />
+            {buttonTranverseId === "Assign Work" && (
+              <div>
+                <AssignWork taskList={taskList} setTaskList={setTaskList} />
+              </div>
             )}
-            {checkScheduleOptima && (
-              <Fragment>
+            {buttonTranverseId === "Schedule Optima" && (
+              <>
                 <ScheduleOptima
                   userLoginId={userLoginId}
                   onCheckExtraTask={handleCheckExtraTask}
                   onShowOpenRequest={checkExtraTask}
                 />
-                {showExtraTask && (
-                  <ExtraTaskRequest
-                    onTaskData={extraTask}
-                    onClose={() => setShowExtraTask(false)}
-                  />
-                )}
-              </Fragment>
+                <QuickTeritoryFlash />
+              </>
+            )}
+            {/* ===========================REMAINDER=============================== */}
+            {buttonTranverseId === "Remainder" && (
+              <div className={styles.remainderdiv}>
+                <Remainder
+                  remainder={remainder}
+                  setRemainder={setRemainder}
+                  refreshRemainder={fetchRemainder}
+                />
+              </div>
             )}
           </div>
+
           <div className={styles.box}>
             <button>Search</button>
             <button>Add</button>
