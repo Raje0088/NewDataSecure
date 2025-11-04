@@ -5,7 +5,7 @@ const { GenerateClientSerialNumber, searchByClientId, searchAllClientsThroughQue
      createClient, updateClient, getCheckClientIdPresent, filterClientData, CheckClientIdforExcelSheet,deactivateClientData } = require("../controllers/clientController.js")
 
 const { updateDataMergeAndDelete } = require("../controllers/DuplicateAndMergeDataController.js")
-const { getClientsAssignedToEmployee } = require("../controllers/clientController");
+const { getClientsAssignedToEmployee,checkAlreadyDataExist } = require("../controllers/clientController");
 router.get("/assigned-clients/:userId", getClientsAssignedToEmployee);
 
 
@@ -24,6 +24,7 @@ router.get("/search-allclient-match", searchAllClientsThroughQuery)
 router.post("/filter-clientdata", filterClientData)
 router.get("/checkclientIdforexcelsheet/:id", CheckClientIdforExcelSheet)
 router.put("/deactivate-client/:id", deactivateClientData)
+router.post("/check-already-exist", checkAlreadyDataExist)
 
 router.post("/updateclient-merge-delete", updateDataMergeAndDelete)
 

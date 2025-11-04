@@ -31,7 +31,7 @@ const rawDataSchema = new mongoose.Schema({
     dumpBy_db: String,
     remark_db:String,
     master_data_db: {
-        assignTo: String,
+        assignTo:{type:String,default:""},
         excelId: { type: String },
         state: { type: [String], default: [] },
         district: [{ name: String, total: Number }],

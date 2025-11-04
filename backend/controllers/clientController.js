@@ -1,7 +1,8 @@
 const { clientModel } = require("../models/clientModel.js")
 const { clientHistoryModel } = require("../models/clientModel.js");
 const { rawDataModel } = require("../models/rawDataModel.js")
-const {getNextGobalCounterSequence} = require("../utils/getNextSequence.js")
+const { UserModel } = require("../models/user.js")
+const { getNextGobalCounterSequence } = require("../utils/getNextSequence.js")
 
 const lastUpdatedTracker = async (clientId) => {
     try {
@@ -12,7 +13,7 @@ const lastUpdatedTracker = async (clientId) => {
             {
                 $set: {
                     database_status_db: "Client",
-                    isActive_db:false,
+                    isActive_db: false,
                 }
             },
             {
@@ -48,7 +49,6 @@ const GenerateClientSerialNumber = async (req, res) => {
 }
 const createClient = async (req, res) => {
     try {
-        console.log("we are in client")
         const { clientSerialNo, clientId, userId, bussinessNames, clientName,
             numbers, emails, website,
             addresses, pincode, district,
@@ -56,6 +56,7 @@ const createClient = async (req, res) => {
             product, stage, quotationShare, database,
             expectedDate, remarks, label, completion,
             followUpDate, verifiedBy, tracker, amountDetails, action, followUpTime } = req.body;
+            console.log("we are in client",state,district)
         // console.log("req body", amountDetails)
         const bussiness1 = bussinessNames[0]?.value || "";
         const bussiness2 = bussinessNames[1]?.value || "";
@@ -83,6 +84,14 @@ const createClient = async (req, res) => {
         }
 
         // console.log("tracking -------------->", tracker)
+        
+        const user = await UserModel.findOne({ "master_data_db.district.name": { $in: [district] }, "master_data_db.state": { $in: [state] } })
+        if(!user){
+            console.log("no matching fuound",district,state)
+        }else{
+            console.log("dfasdfdklfjkl",user)
+        }
+
         const result = await clientModel.create({
             client_serial_no_id: clientSerialNo,
             client_id: clientId,
@@ -130,7 +139,9 @@ const createClient = async (req, res) => {
             label_db: label,
             completion_db: completion,
             amountDetails_db: amountDetails,
+           "master_data_db.assignTo": user.generateUniqueId,
         })
+
         getNextGobalCounterSequence("rawSerialNumber")
         lastUpdatedTracker(clientId);
         console.log("Client Details save Successfully", result)
@@ -384,9 +395,9 @@ const searchAllClientsThroughQuery = async (req, res) => {
 //FILTER ALL CLIENT DB BY SEARCH
 const filterClientData = async (req, res) => {
     try {
-        const { clientId, clientName, opticalName, address, mobile, email, district, state, country, hot,
-            followUp, demo, installation, product, defaulter, recovery, pincode ,lost, dateFrom, dateTo, clientType, } = req.body;
-        const { page = 1 } = req.query;
+        const { userId, clientId, clientName, opticalName, address, mobile, email, district, state, country, hot,
+            followUp, demo, installation, product, defaulter, recovery, pincode, lost, dateFrom, dateTo, clientType, } = req.body;
+        const { page = 1 } = req.body;
         const limit = 500;
         const skip = (page - 1) * limit;
         // console.log("query", req.query)
@@ -394,8 +405,12 @@ const filterClientData = async (req, res) => {
         const filters = {}
         const orConditions = [];
 
+        if (userId !== "SA") {
+            filters["master_data_db.assignTo"] = userId;
+            console.log("userId", userId)
+        }
         if (clientId) filters.client_id = clientId
-         if (pincode) filters.pincode_db = {$in:pincode}
+        if (pincode) filters.pincode_db = { $in: pincode }
         if (clientName) filters.client_name_db = { $regex: clientName, $options: "i" }
         if (opticalName) {
             orConditions.push(
@@ -443,7 +458,7 @@ const filterClientData = async (req, res) => {
         if (recovery === "true") filters["tracking_db.recovery_db.completed"] = true
         if (lost === "true") filters["tracking_db.lost_db.completed"] = true
         if (dateFrom && dateTo) filters.date_db = { $gte: dateFrom, $lte: dateTo }
-         filters.isActive_db = true;
+        filters.isActive_db = true;
 
         const result = await clientModel.find(filters).sort({ client_id: 1 }).skip(skip).limit(limit)
         const totalCount = await clientModel.countDocuments(filters)
@@ -472,7 +487,7 @@ const deactivateClientData = async (req, res) => {
         const result = await clientModel.findOneAndUpdate(
             { client_id: clientId, isActive_db: true },
             { $set: { isActive_db: false } },
-            {new:true},
+            { new: true },
         )
 
         res.status(200).json({ message: `${clientId} deactivated successfully`, result })
@@ -482,4 +497,62 @@ const deactivateClientData = async (req, res) => {
     }
 }
 
-module.exports = { searchAllClientsThroughQuery, CheckClientIdforExcelSheet, filterClientData, searchByClientId, GenerateClientSerialNumber, createClient, updateClient, getClientsAssignedToEmployee, getCheckClientIdPresent ,deactivateClientData}
+
+//This is post request because i am passing array get not support array so using post method
+const checkAlreadyDataExist = async (req, res) => {
+    try {
+        const { bussinessNames, numbers, emails, pincode, district, state } = req.body;
+        console.log("regexArray", bussinessNames, numbers, emails, pincode, district, state)
+
+
+        let filters = { $and: [] }
+        if (bussinessNames) {
+            const nameField = bussinessNames?.map((t) => (t.value.trim()))
+            const regexArray = nameField?.map(val => new RegExp(val, "i"))
+
+            const opticalNameOr = [
+                { optical_name1_db: { $in: regexArray } },
+                { optical_name2_db: { $in: regexArray } },
+                { optical_name3_db: { $in: regexArray } },
+            ]
+            filters.$and.push({ $or: opticalNameOr })
+        }
+
+        if (numbers) {
+            const mobileField = numbers.map((t) => t.value.trim().toString())
+            const mobileOr = [
+                { mobile_1_db: { $in: mobileField } },
+                { mobile_2_db: { $in: mobileField } },
+                { mobile_3_db: { $in: mobileField } },
+            ]
+            filters.$and.push({ $or: mobileOr })
+        }
+
+        if (emails) {
+            const emailField = emails.map((i) => i.value.trim())
+            const regexEmail = emailField.map(val => new RegExp(val, "i"))
+            const emailOr = [
+                { email_1_db: { $in: regexEmail } },
+                { email_2_db: { $in: regexEmail } },
+                { email_3_db: { $in: regexEmail } },
+            ]
+            filters.$and.push({ $or: emailOr })
+        }
+        if (pincode) {
+            filters.$and.push({ pincode_db: pincode })
+        }
+        if (district) {
+            filters.$and.push({ district_db: district })
+        }
+        if (state) {
+            filters.$and.push({ state_db: state })
+        }
+        const result = await clientModel.find(filters)
+
+        res.status(200).json({ message: `Client already exist`, totalCount: result.length, result: result })
+    } catch (err) {
+        res.status(500).json({ message: "Error during deactivation", err: err.message });
+        console.log("Error during deactivation", err)
+    }
+}
+module.exports = { searchAllClientsThroughQuery, checkAlreadyDataExist, CheckClientIdforExcelSheet, filterClientData, searchByClientId, GenerateClientSerialNumber, createClient, updateClient, getClientsAssignedToEmployee, getCheckClientIdPresent, deactivateClientData }

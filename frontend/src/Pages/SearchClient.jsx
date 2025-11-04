@@ -335,6 +335,7 @@ const SearchClient = () => {
   const handleSearchData = async (pageNum = 1) => {
     if (!filterRaw.clientType) return alert("please select user");
     setIsLoading(true);
+    console.log("dskfdkddkddd")
     try {
       let result;
       if (filterRaw.clientType === "ALL") {
@@ -349,12 +350,14 @@ const SearchClient = () => {
         result = await axios.post(`${base_url}/raw-data/filters-rawdata`, {
           ...filterRaw,
           page: pageNum,
+          userId: userLoginId,
         });
       }
       if (filterRaw.clientType === "CLIENT") {
         result = await axios.post(`${base_url}/clients/filter-clientdata`, {
           ...filterRaw,
           page: pageNum,
+          userId: userLoginId,
         });
         console.log("client", filterRaw.clientType, result);
       }
@@ -365,6 +368,7 @@ const SearchClient = () => {
           {
             ...filterRaw,
             page: pageNum,
+            userId: userLoginId,
           }
         );
       }

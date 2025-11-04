@@ -26,7 +26,7 @@ const ExecutiveDashboard = () => {
   const [showExtraTask, setShowExtraTask] = useState(true);
   const [taskList, setTaskList] = useState([]);
   const [assigntaskNotify, setAssignTaskNotify] = useState(0);
-  const [buttonTranverseId, setButtonTranverseId] = useState(null);
+  const [buttonTranverseId, setButtonTranverseId] = useState("quickTeritory");
   const [isRemainder, setIsRemainder] = useState(false);
   const [remainderTotalCount, setRemainderTotalCount] = useState(0);
   const [remainder, setRemainder] = useState([]);
@@ -175,6 +175,19 @@ const ExecutiveDashboard = () => {
                 )}
               </button>
             </div>
+            <button
+              style={{
+                backgroundColor:
+                  buttonTranverseId === "quickTeritory"
+                    ? "hsl(241, 100%, 81%)"
+                    : "",
+              }}
+              onClick={() => {
+                setButtonTranverseId("quickTeritory");
+              }}
+            >
+              Quick Overview
+            </button>
           </div>
 
           <div className={styles["show-content"]}>
@@ -190,7 +203,16 @@ const ExecutiveDashboard = () => {
                   onCheckExtraTask={handleCheckExtraTask}
                   onShowOpenRequest={checkExtraTask}
                 />
-                <QuickTeritoryFlash />
+              </>
+            )}
+            {buttonTranverseId === "quickTeritory" && (
+              <>
+                <QuickTeritoryFlash
+                  isOpen={buttonTranverseId}
+                  onClose={() => {
+                    setButtonTranverseId("");
+                  }}
+                />
               </>
             )}
             {/* ===========================REMAINDER=============================== */}

@@ -11,7 +11,8 @@ const { getNextGobalCounterSequence, getNextGobalCounterSequenceForRaw, getLastN
 const { districtnames, statenames } = require("../utils/MasterPlaceList")
 const stringSimilarity = require("string-similarity");
 const { viewExcelModel } = require("../models/viewExcelModel");
-const paths = require("../utils/assetPath")
+const paths = require("../utils/assetPath");
+const { UserModel } = require("../models/user");
 
 const correctSpelling = (input, masterList) => {
     if (!input) return "";
@@ -87,7 +88,6 @@ const rawDataDump = async (req, res) => {
                 }
                 if (isError) continue
 
-
                 SrNo++;
                 const formattedData = {
                     client_serial_no_id: SrNo,
@@ -106,7 +106,7 @@ const rawDataDump = async (req, res) => {
                     email_2_db: item.Email2 || "",
                     followup_db: item.Followup || "",
                     dumpBy_db: `${userId}_${curTime}`,
-                    remark_db:item.Remark || "",
+                    remark_db: item.Remark || "",
                 };
 
                 formattedDataArray.push(formattedData);
@@ -138,16 +138,70 @@ const rawDataDump = async (req, res) => {
         // Insert all valid records at once
         if (formattedDataArray.length > 0) {
             await getNextGobalCounterSequenceForRaw("rawSerialNumber", SrNo)
-            await rawDataModel.insertMany(formattedDataArray);
+            const t =await rawDataModel.insertMany(formattedDataArray);
+            console.log("raw total",t.length)
             await viewExcelModel.create({
                 userId_db: userId,
                 excelURL_db: `/uploadExcel/${fileName}`,
-                date_db: new Date().toISOString().split("T")[0],
+                date_db: new Date().toISOString().split("T")[0], 
                 time_db: new Date().toLocaleTimeString(),
                 total_db: count,
                 dumpBy_db: `${userId}_${curTime}`,
                 excel_title_db: originalFileName.trim().toUpperCase(),
             })
+            const uniqueDistricts = await rawDataModel.distinct("district_db", { dumpBy_db: `${userId}_${curTime}` })
+            console.log("district", uniqueDistricts)
+            const users = await UserModel.find({
+                "master_data_db.district.name": { $in: uniqueDistricts }
+            })
+            console.log("user----------", users)
+
+            // ✅ Step 3: Build a map of district → userId
+            const districtUserMap = new Map();
+
+            for (const user of users) {
+                const assignedDistricts = user.master_data_db?.district?.map((d) => d.name) || [];
+                for (const dist of assignedDistricts) {
+                    // store only if not already mapped
+                    if (!districtUserMap.has(dist)) {
+                        districtUserMap.set(dist, user.generateUniqueId);
+                    }
+                }
+            }
+
+            // ✅ Step 4: Prepare bulk updates
+            if (districtUserMap.size > 0) {
+                const bulkOps = [];
+
+                for (const [district, userIdForDistrict] of districtUserMap.entries()) {
+                    if (!district || !userIdForDistrict) continue;
+                    bulkOps.push({
+                        updateMany: {
+                            filter: {
+                                dumpBy_db: `${userId}_${curTime}`,
+                                district_db: district,
+                            },
+                            update: {
+                                $set: { "master_data_db.assignTo": userIdForDistrict },
+                            },
+                        },
+                    });
+                }
+
+                if (bulkOps.length > 0) {
+                    console.log("🧠 bulkOps preview:", JSON.stringify(bulkOps, null, 2));
+
+                    // ✅ Correct mongoose bulkWrite
+                    await rawDataModel.bulkWrite(bulkOps, { ordered: false });
+
+                    console.log(`✅ Bulk assignment done for ${bulkOps.length} districts`);
+                } else {
+                    console.log("⚠️ No matching users found for uploaded districts");
+                }
+            }
+
+
+            console.log("🎯 District assignment completed successfully!");
         }
         res.write(`event: complete\ndata: ${JSON.stringify({ message: "Upload complete", total })}\n\n`);
         res.end()
@@ -274,15 +328,18 @@ const activateRawData = async (req, res) => {
 //GET RAW DATA FILTERS BY ScEARCH
 const filterRawData = async (req, res) => {
     try {
-        const { clientId, clientName, opticalName, address, mobile, email, district, state, country, hot,
+        const { userId, clientId, clientName, opticalName, address, mobile, email, district, state, country, hot,
             followUp, demo, installation, product, defaulter, recovery, lost, dateFrom, dateTo, clientType, pincode } = req.body;
-        const { page = 1 } = req.query;
+        const { page = 1 } = req.body;
         const limit = 500;
         const skip = (page - 1) * limit;
         console.log("query raw", req.body)
 
         const filters = {}
-
+        if (userId !== "SA") {
+            filters["master_data_db.assignTo"] = userId;
+            console.log("userId", userId)
+        }
         if (clientId) filters.client_id = clientId
         if (pincode && pincode.length > 0) filters.pincode_db = { $in: pincode }
         if (clientName) filters.client_name_db = { $regex: clientName, $options: "i" }
@@ -399,13 +456,17 @@ const getLastGlobalId = async (req, res) => {
 
 const gilterDataFromAllDB = async (req, res) => {
     try {
-        const { clientId, clientName, opticalName, address, mobile, email, district, state, country, hot,
-            followUp, demo, installation, product, defaulter, recovery, lost, dateFrom, dateTo, clientType, pincode } = req.body;
-        const { page = 1 } = req.query;
+        const { userId, clientId, clientName, opticalName, address, mobile, email, district, state, country, hot,
+            followUp, demo, installation, product, defaulter, recovery, lost, dateFrom, dateTo, clientType, pincode,page=1 } = req.body;
         const limit = 100;
         const skip = (page - 1) * limit;
         console.log("pincode", pincode)
         const filters = {}
+
+        // if (userId !== "SA") {
+        //     filters["master_data_db.assignTo"] = userId;
+        //     console.log("userId", userId)
+        // }
 
         if (clientId) filters.client_id = clientId
         if (pincode && pincode.length > 0) filters.pincode_db = { $in: pincode }
@@ -439,7 +500,7 @@ const gilterDataFromAllDB = async (req, res) => {
         if (district) filters.district_db = { $regex: district, $options: "i" }
         if (state) filters.state_db = { $regex: state, $options: 'i' }
         filters.isActive_db = true;
-
+        console.log("filters",filters)
         //total counts
         const rawCount = await rawDataModel.countDocuments(filters)
         const clientCount = await clientModel.countDocuments(filters)
@@ -448,7 +509,7 @@ const gilterDataFromAllDB = async (req, res) => {
         const totalCount = userCount + clientCount + rawCount;
 
         let remainingSkip = skip;
-        let remainingLimit = limit;
+        let remainingLimit = limit; 
 
         let r1 = [], r2 = [], r3 = [];
 

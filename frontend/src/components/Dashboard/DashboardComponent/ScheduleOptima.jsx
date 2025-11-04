@@ -13,20 +13,28 @@ const ScheduleOptima = (props) => {
   const [showProgress, setShowProgress] = useState([]);
   const [showProgressMode, setShowProgressMode] = useState(false);
   const [ScheduleList, setScheduleList] = useState([
+    "New Data Add",
     "No of New Calls",
+    "Leads",
     "Demo",
-    "Installation",
+    "Follow Up",
     "Target",
+    "Training",
+    "Installation",
     "Recovery",
     "Support",
   ]);
   const [getSelectedTime, setGetSelectedTime] = useState("");
   const [selectDate, setSelectDate] = useState("");
   const taskKeyMap = {
+    "New Data Add": "new_data_add_db",
     "No of New Calls": "no_of_new_calls_db",
+    Leads: "leads_db",
     Demo: "demo_db",
-    Installation: "installation_db",
+    "Follow Up": "follow_up_db",
     Target: "target_db",
+    Training: "training_db",
+    Installation: "installation_db",
     Recovery: "recovery_db",
     Support: "support_db",
   };
@@ -109,16 +117,16 @@ const ScheduleOptima = (props) => {
   };
   return (
     <div className={styles.main}>
-      <div  className={styles.heading}>
+      <div className={styles.heading}>
         <span>
           <h4>{userLoginId}</h4>
         </span>
         <span>
-          <h3 style={{textAlign:"center"}}>Schedule Goal</h3>
+          <h3 style={{ textAlign: "center" }}>Schedule Goal</h3>
         </span>
-        <span style={{textAlign:"end"}}>
+        <span style={{ textAlign: "end" }}>
           <h4>
-            Date:{" "}
+           Select Date:{" "}
             <input
               type="date"
               value={selectDate}
@@ -192,15 +200,18 @@ const ScheduleOptima = (props) => {
 
       <div className={styles.setterdiv}>
         <h4>Set Deadline:</h4>
-        <span style={{width:"auto"}}>
-        <TimePickerComponent onTimeChange={handleTimeChange} />
-
+        <span style={{ width: "auto" }}>
+          <TimePickerComponent onTimeChange={handleTimeChange} />
         </span>
       </div>
 
       <div className={styles.btn}>
-        <button className={styles.custombtn} onClick={handleScheduleGoals}>Save Schedule</button>
-        <button className={styles.custombtn} onClick={handleGoalsShow}>Refresh</button>
+        <button className={styles.custombtn} onClick={handleScheduleGoals}>
+          Save Schedule
+        </button>
+        <button className={styles.custombtn} onClick={handleGoalsShow}>
+          Refresh
+        </button>
         {props.onShowOpenRequest && (
           <button onClick={props.onCheckExtraTask}>Open Request</button>
         )}

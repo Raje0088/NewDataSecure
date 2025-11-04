@@ -9,11 +9,11 @@ const { UserModel } = require("../models/user")
 const assignClient = async (req, res) => {
     try {
         const { assignBy, assignTo, productRange, taskType, state, pincode, date, deadline, target, taskMode, district, businessName, mobile, directSend = "false", selectedClients, title = "New Task", excelId, forceAssign } = req.body;
-        console.log("task  assign", state, district, excelId,pincode)
-        if (directSend === "false") {
+        console.log("task  assign", state, district, excelId, pincode)
+        if (directSend === "false" && excelId && excelId.title !== "NA") {
             const alreadyAssign = await taskAssignModel.findOne({ "excelId_db.title": excelId.title })
             if (alreadyAssign && !forceAssign) return res.status(200).json({ askConfirmation: true, message: `Already Assigned to ${alreadyAssign.assignTo_db} by ${alreadyAssign.assignBy_db}` })
-        } 
+        }
 
         //Updating UserModel of executive to assign Maaster data and also updating viewExcelModel to know excel already assign
         if (excelId?.excelId) {
@@ -65,8 +65,18 @@ const assignClient = async (req, res) => {
             );
         }
 
+        if (district && state) {
+            await rawDataModel.updateMany({ district_db: district, state_db: state },
+                {
+                    $set: {
+                        "master_data_db.assignTo": assignTo,
+                    }
+                }
+            )
+        }
+
         if (pincode.length > 0) {
-            await rawDataModel.updateMany({ pincode_db: {$in:pincode} },
+            await rawDataModel.updateMany({ pincode_db: { $in: pincode } },
                 {
                     $set: {
                         "master_data_db.assignTo": assignTo,

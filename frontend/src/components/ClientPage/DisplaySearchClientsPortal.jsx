@@ -2,12 +2,15 @@ import React, { useEffect, useState, useRef } from "react";
 import ReactDOM from "react-dom";
 import { IoMdClose } from "react-icons/io";
 import styles from "./DisplaySearchClientsPortal.module.css";
+import { useContext } from "react";
+import { AuthContext } from "../../context-api/AuthContext";
 
 const DisplaySearchClientsPortal = ({
   onAllSearchClientData,
   onClose,
   onClientIdClick,
 }) => {
+  const { userLoginId } = useContext(AuthContext);
   const handleClose = useRef();
   const [itemPerPage, setItemPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -22,7 +25,7 @@ const DisplaySearchClientsPortal = ({
     indexOfFirstItem,
     indexOfLastItem
   );
-
+  console.log("paginate", paginateAllSearchData);
   const goToNext = () => {
     setCurrentPage((prev) => Math.min(prev + 1, totalPage));
   };
@@ -75,10 +78,15 @@ const DisplaySearchClientsPortal = ({
                   <tr key={idx}>
                     <td>{data.client_serial_no_id}</td>
                     <td
-                      onClick={() => {
-                        onClientIdClick(data.client_id);
-                        onClose();
-                      }}
+                      onClick={
+                        !(data.master_data_db.assignTo !== userLoginId &&
+                        userLoginId !== "SA")
+                          ? () => {
+                              onClientIdClick(data.client_id);
+                              onClose();
+                            }
+                          : undefined
+                      }
                     >
                       <strong style={{ cursor: "pointer" }}>
                         {data.client_id}
@@ -86,9 +94,36 @@ const DisplaySearchClientsPortal = ({
                     </td>
                     <td>{data.client_name_db}</td>
                     <td>{data.optical_name1_db}</td>
-                    <td>{data.mobile_1_db}</td>
-                    <td>{data.email_1_db}</td>
-                    <td>{data.address_1_db}</td>
+                    <td
+                      className={
+                        data.master_data_db.assignTo !== userLoginId &&
+                        userLoginId !== "SA"
+                          ? styles.blur
+                          : ""
+                      }
+                    >
+                      {data.mobile_1_db}
+                    </td>
+                    <td
+                      className={
+                        data.master_data_db.assignTo !== userLoginId &&
+                        userLoginId !== "SA"
+                          ? styles.blur
+                          : ""
+                      }
+                    >
+                      {data.email_1_db}
+                    </td>
+                    <td
+                      className={
+                        data.master_data_db.assignTo !== userLoginId &&
+                        userLoginId !== "SA"
+                          ? styles.blur
+                          : ""
+                      }
+                    >
+                      {data.address_1_db}
+                    </td>
                     <td>{data.district_db}</td>
                     <td>{data.state_db}</td>
                   </tr>

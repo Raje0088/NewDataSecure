@@ -12,15 +12,28 @@ const UserAssignTask = ({ executiveId }) => {
   const [userHistory, setUserHistory] = useState([]);
   const [addTask, setAddTask] = useState([
     { title: "New Data Add", num: "" },
+    { title: "No of New Calls", num: "" },
     { title: "Leads", num: "" },
-    { title: "Training", num: "" },
+    { title: "Demo", num: "" },
     { title: "Follow Up", num: "" },
+    { title: "Target", num: "" },
+    { title: "Training", num: "" },
+    { title: "Installation", num: "" },
+    { title: "Recovery", num: "" },
+    { title: "Support", num: "" },
+    { title: "Product", num: "" },
   ]);
   const [addRequest, setAddRequest] = useState([
     { title: "New data add", num: "", text: "" },
+    { title: "No of New Calls", num: "", text: "" },
     { title: "Leads", num: "", text: "" },
-    { title: "Training", num: "", text: "" },
+    { title: "Demo", num: "", text: "" },
     { title: "Follow Up", num: "", text: "" },
+    { title: "Target", num: "", text: "" },
+    { title: "Training", num: "", text: "" },
+    { title: "Installation", num: "", text: "" },
+    { title: "Recovery", num: "", text: "" },
+    { title: "Support", num: "", text: "" },
     { title: "Product", num: "", text: "" },
   ]);
   const [deadline, setDeadline] = useState("");
@@ -31,7 +44,8 @@ const UserAssignTask = ({ executiveId }) => {
   });
   const [excelIdList, setExcelIdList] = useState([]);
   const [userAssignProduct, setUserAssignProduct] = useState([]);
-
+  const [taskProductMatrix, setTaskProductMatrix] = useState({});
+  
   useEffect(() => {
     const fetchExcel = async () => {
       try {
@@ -58,13 +72,28 @@ const UserAssignTask = ({ executiveId }) => {
         //   min: 0,
         //   max: 0,
         // }));
-
+    console.log("user ---------",user.assignProduct.map((item)=>(item.label)))
+    const userProducts = user.assignProduct.map((item)=>(item.label))
         // ============ IF EXIST DATA THEN DISPLAY IT ===================
         const result = await axios.get(
           `${base_url}/users/get-userForm/${executiveId}`
         );
         console.log("user task details", result.data.result, executiveId);
         const data = result.data.result;
+        console.log("-----------------------", data?.task_product_matrix_db);
+       if (Array.isArray(data?.task_product_matrix_db)) {
+  const transformed = {};
+  data.task_product_matrix_db.forEach((task) => {
+    transformed[task.taskTitle] = {};
+    task.products.forEach((p) => {
+      transformed[task.taskTitle][p.productTitle] = p.num || 0;
+    });
+  });
+  setTaskProductMatrix(transformed);
+} else {
+  setTaskProductMatrix({});
+}
+
 
         const updatedTasks = addTask.map((task, index) => {
           const apiTask = data?.assign_task[index];
@@ -85,6 +114,7 @@ const UserAssignTask = ({ executiveId }) => {
         });
         setAddRequest(updatedRequest);
 
+        console.log(" BEFORE");
         if (!data?.product_task) {
           const initProd = user.assignProduct.map((item) => ({
             title: item.label,
@@ -112,6 +142,40 @@ const UserAssignTask = ({ executiveId }) => {
     fetchUserTaskData();
   }, [executiveId]);
 
+  useEffect(() => {
+    if (userAssignProduct.length > 0 && addTask.length > 0) {
+        setTaskProductMatrix((prev)=>{
+          if(Object.keys(prev).length > 0) return prev;
+
+          //otherwise initialize new
+          const matrix = {} // Object, not array
+          addTask.forEach((task)=>{
+            matrix[task.title] = {}
+            userAssignProduct.forEach((prod) => {
+              matrix[task.title][prod.title] = 0;
+            })
+          })
+          console.log("Initialized matrix",matrix)
+          return matrix;
+        })
+    }
+  }, [userAssignProduct, addTask]);
+
+
+
+  const handleMatrixChange = (taskTitle, productTitle, value) => {
+    setTaskProductMatrix((prev) => ({
+      ...prev,
+      [taskTitle]: {
+        ...prev[taskTitle],
+        [productTitle]: Number(value),
+      },
+    }));
+  };
+
+
+
+  console.log("taskProductMatrix",taskProductMatrix)
   const handleaddTask = () => {
     setAddTask([...addTask, { title: "", num: "" }]);
     console.log("task-", addTask);
@@ -162,6 +226,7 @@ const UserAssignTask = ({ executiveId }) => {
         assignToId: executiveId,
         deadline: deadline,
         date: date,
+        taskProductMatrix:taskProductMatrix,
         selectedExcel: selectedExcelId,
       });
       console.log("User Task Saved", result.data);
@@ -185,6 +250,7 @@ const UserAssignTask = ({ executiveId }) => {
       const result = await axios.get(
         `${base_url}/users/get-userForm-history/${executiveId}`
       );
+
       setUserHistory(result.data.result);
       console.log("user Assign Task History", result.data.result);
     } catch (err) {
@@ -214,8 +280,46 @@ const UserAssignTask = ({ executiveId }) => {
             ))}
           </select>
         </div> */}
+        <div className="matrix-table-container">
+          <h4 style={{marginBottom:"10px"}}>Assign Task</h4>
+          <table className="matrix-table">
+            <thead>
+              <tr>
+                <th>Task \ Product</th>
+                {userAssignProduct.map((prod, i) => (
+                  <th key={i}>{prod.title}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {addTask.map((task, i) => (
+                <tr key={i}>
+                  <td style={{ fontWeight: "bold" }}>{task.title}</td>
+                  {userAssignProduct.map((prod, j) => (
+                    <td key={j}>
+                      <input
+                        type="number"
+                        min="0"
+                        value={taskProductMatrix[task.title]?.[prod.title] || 0}
+                        onChange={(e) =>
+                          handleMatrixChange(
+                            task.title,
+                            prod.title,
+                            e.target.value
+                          )
+                        }
+                        className="userassigntask-input"
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
         <div className="assign-task-div">
-          <div
+          {/* <div
             style={{
               display: "flex",
               alignItems: "center",
@@ -224,10 +328,10 @@ const UserAssignTask = ({ executiveId }) => {
           >
             {" "}
             <h4>Assign Task</h4>
-          </div>
+          </div> */}
 
-          <div className="assign-task-item-div">
-            <div className="assign-task-item">
+          {/* <div className="assign-task-item-div"> */}
+          {/* <div className="assign-task-item">
               <p>{addTask[0].title}</p>
               <input
                 type="number"
@@ -275,7 +379,91 @@ const UserAssignTask = ({ executiveId }) => {
                 className="userassigntask-input"
               />
             </div>
-            {/* 
+            <div className="assign-task-item">
+              <p>{addTask[4]?.title}</p>{" "}
+              <input
+                type="number"
+                value={addTask[4]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleTitleChange(4, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+            </div>
+            <div className="assign-task-item">
+              <p>{addTask[5]?.title}</p>{" "}
+              <input
+                type="number"
+                value={addTask[5]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleTitleChange(5, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+            </div>
+            <div className="assign-task-item">
+              <p>{addTask[6]?.title}</p>{" "}
+              <input
+                type="number"
+                value={addTask[6]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleTitleChange(6, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+            </div>
+            <div className="assign-task-item">
+              <p>{addTask[7]?.title}</p>{" "}
+              <input
+                type="number"
+                value={addTask[7]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleTitleChange(7, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+            </div>
+            <div className="assign-task-item">
+              <p>{addTask[8]?.title}</p>{" "}
+              <input
+                type="number"
+                value={addTask[8]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleTitleChange(8, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+            </div>
+            <div className="assign-task-item">
+              <p>{addTask[9]?.title}</p>{" "}
+              <input
+                type="number"
+                value={addTask[9]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleTitleChange(9, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+            </div>
+            <div className="assign-task-item">
+              <p>{addTask[10]?.title}</p>{" "}
+              <input
+                type="number"
+                value={addTask[10]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleTitleChange(10, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+            </div> */}
+          {/* 
             {addTask.slice(4).map((item, idx) => {
               const index = idx + 4;
               return (
@@ -313,7 +501,7 @@ const UserAssignTask = ({ executiveId }) => {
                 </div>
               );
             })} */}
-            {/* <div className="assign-task-item">
+          {/* <div className="assign-task-item">
               <p>
                 <IoMdAddCircleOutline
                   onClick={handleaddTask}
@@ -321,10 +509,10 @@ const UserAssignTask = ({ executiveId }) => {
                 />
               </p>
             </div> */}
-          </div>
+          {/* </div> */}
         </div>
 
-        <div className="request-div">
+        <div style={{ display: "none" }} className="request-div">
           <div
             style={{
               display: "flex",
@@ -439,6 +627,126 @@ const UserAssignTask = ({ executiveId }) => {
                 className="userassigntask-input align-input"
               />
             </div>
+            <div className="request-item">
+              <p>{addRequest[5]?.title}</p>
+              <input
+                type="number"
+                value={addRequest[5]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleRequestTitleChange(5, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+              <input
+                type="text"
+                value={addRequest[5]?.text}
+                onChange={(e) => {
+                  handleRequestTitleChange(5, "text", e.target.value);
+                }}
+                className="userassigntask-input align-input"
+              />
+            </div>
+            <div className="request-item">
+              <p>{addRequest[6]?.title}</p>
+              <input
+                type="number"
+                value={addRequest[6]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleRequestTitleChange(6, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+              <input
+                type="text"
+                value={addRequest[6]?.text}
+                onChange={(e) => {
+                  handleRequestTitleChange(6, "text", e.target.value);
+                }}
+                className="userassigntask-input align-input"
+              />
+            </div>
+            <div className="request-item">
+              <p>{addRequest[7]?.title}</p>
+              <input
+                type="number"
+                value={addRequest[7]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleRequestTitleChange(7, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+              <input
+                type="text"
+                value={addRequest[7]?.text}
+                onChange={(e) => {
+                  handleRequestTitleChange(7, "text", e.target.value);
+                }}
+                className="userassigntask-input align-input"
+              />
+            </div>
+            <div className="request-item">
+              <p>{addRequest[8]?.title}</p>
+              <input
+                type="number"
+                value={addRequest[8]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleRequestTitleChange(8, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+              <input
+                type="text"
+                value={addRequest[8]?.text}
+                onChange={(e) => {
+                  handleRequestTitleChange(8, "text", e.target.value);
+                }}
+                className="userassigntask-input align-input"
+              />
+            </div>
+            <div className="request-item">
+              <p>{addRequest[9]?.title}</p>
+              <input
+                type="number"
+                value={addRequest[9]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleRequestTitleChange(9, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+              <input
+                type="text"
+                value={addRequest[9]?.text}
+                onChange={(e) => {
+                  handleRequestTitleChange(9, "text", e.target.value);
+                }}
+                className="userassigntask-input align-input"
+              />
+            </div>
+            <div className="request-item">
+              <p>{addRequest[10]?.title}</p>
+              <input
+                type="number"
+                value={addRequest[10]?.num}
+                onChange={(e) => {
+                  const value = Math.max(0, e.target.value);
+                  handleRequestTitleChange(10, "num", value);
+                }}
+                className="userassigntask-input"
+              />
+              <input
+                type="text"
+                value={addRequest[10]?.text}
+                onChange={(e) => {
+                  handleRequestTitleChange(10, "text", e.target.value);
+                }}
+                className="userassigntask-input align-input"
+              />
+            </div>
             {/* {addRequest.slice(5).map((item, idx) => {
               const index = idx + 5;
               return (
@@ -494,7 +802,8 @@ const UserAssignTask = ({ executiveId }) => {
             </div> */}
           </div>
         </div>
-        <div className="product-file-div">
+
+        <div className="product-list-div">
           <div
             style={{
               display: "flex",
@@ -625,7 +934,7 @@ const UserAssignTask = ({ executiveId }) => {
                             <ul style={{ margin: 0, paddingLeft: "15px" }}>
                               <div
                                 style={{
-                                  width:"100%",
+                                  width: "100%",
                                   display: "grid",
                                   gridTemplateColumns: "40% 45% 15%",
                                 }}
@@ -666,7 +975,7 @@ const UserAssignTask = ({ executiveId }) => {
                                 <div
                                   key={i}
                                   style={{
-                                    width:"100%",
+                                    width: "100%",
                                     display: "grid",
                                     gridTemplateColumns: "40% 30% 30%",
                                   }}

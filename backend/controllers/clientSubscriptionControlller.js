@@ -293,14 +293,18 @@ const getAllUserSubsriptionIds = async (req, res) => {
 //FILTER ALL USER DB
 const filterClientSubscriptionData = async (req, res) => {
     try {
-        const {clientId, clientName, opticalName, address, mobile, email, district, state, country, hot,
+        const {userId,clientId, clientName, opticalName, address, mobile, email, district, state, country, hot,
             followUp, demo, installation, product,pincode, defaulter, recovery, lost, dateFrom, dateTo, clientType, } = req.body;
-        const { page = 1 } = req.query;
+        const { page = 1 } = req.body;
         const limit = 500;
         const skip = (page - 1) * limit;
         console.log("query", req.query)
 
         const filters = {}
+                            if (userId !== "SA") {
+           filters["master_data_db.assignTo"] = userId;
+            console.log("userId", userId)
+        }
         const orConditions = [];
             if(clientId) filters.client_id = clientId
         if (clientName) filters.client_name_db = { $regex: clientName, $options: "i" }
@@ -322,7 +326,7 @@ const filterClientSubscriptionData = async (req, res) => {
 
         if (mobile) {
             orConditions.push(
-                { mobile_1_db: { $regex: mobile, $options: "i" } },
+                { mobile_1_db: { $regex: mobile, $options: "i" } }, 
                 { mobile_2_db: { $regex: mobile, $options: "i" } },
                 { mobile_3_db: { $regex: mobile, $options: "i" } }
             );
@@ -388,4 +392,130 @@ const deactivateUserData = async (req, res) => {
     }
 }
 
-module.exports = { createSubscripbeUser, CheckUserIdforExcelSheet, filterClientSubscriptionData, getAllUserSubsriptionIds, updateUserScription, searchUserSubsciption, CheckUserSubsciptionToRedirect,deactivateUserData }  
+//SEARCHING CLIENT TRHOUGH NAME, BUSINESS,MOBILE, ADDRESS,PIN, ETC TO GET ALL MATCH DETAILS 
+const searchAllUserThroughQuery = async (req, res) => {
+    try {
+        const { name, opticalName, mobile, address, pincode, district, state, clientId, email } = req.query;
+        console.log("searches are", name, opticalName, mobile, address, pincode, district, state, clientId, email)
+        let filters = {}
+        let andConditions = [];
+
+        if (name) { andConditions.push({ client_name_db: { $regex: name.trim(), $options: "i" } }) }
+        if (pincode && pincode.length === 6) { andConditions.push({ pincode_db: { $regex: pincode, $options: "i" } }) }
+        if (district) { andConditions.push({ district_db: { $regex: district, $options: "i" } }) }
+        if (state) { andConditions.push({ state_db: { $regex: state, $options: "i" } }) }
+        if (clientId) { andConditions.push({ client_id: { $regex: clientId, $options: "i" } }) }
+        if (opticalName) {
+            andConditions.push({
+                $or: [
+                    { optical_name1_db: { $regex: opticalName, $options: "i" } },
+                    { optical_name2_db: { $regex: opticalName, $options: "i" } },
+                    { optical_name3_db: { $regex: opticalName, $options: "i" } }
+                ]
+            })
+        }
+
+        if (mobile) {
+            andConditions.push({
+                $or: [
+                    { mobile_1_db: { $regex: mobile, $options: "i" } },
+                    { mobile_2_db: { $regex: mobile, $options: "i" } },
+                    { mobile_3_db: { $regex: mobile, $options: "i" } },
+                ]
+            })
+        }
+
+        if (address) {
+            andConditions.push({
+                $or: [
+                    { address_1_db: { $regex: address, $options: "i" } },
+                    { address_2_db: { $regex: address, $options: "i" } },
+                    { address_3_db: { $regex: address, $options: "i" } },
+                ]
+            })
+        }
+
+        if (email) {
+            andConditions.push({
+                $or: [
+                    { email_1_db: { $regex: email, $options: "i" } },
+                    { email_2_db: { $regex: email, $options: "i" } },
+                    { email_3_db: { $regex: email, $options: "i" } },
+                ]
+            })
+        }
+        let finalFilters = {};
+        if (andConditions.length > 0) {
+            finalFilters.$and = andConditions;
+        }
+        const result = await clientSubscriptionModel.find(finalFilters).sort({ client_id: 1 })
+        if (result.length === 0) {
+            return res.status(200).json({ message: "No Search found", totalCount: result.length, result: result });
+        }
+        res.status(200).json({ message: "Searches found", totalCount: result.length, result: result })
+    } catch (err) {
+        console.log("internal error", err)
+        res.status(500).json({ message: "internal error", err: err.message })
+    }
+}
+
+
+//This is post request because i am passing array get not support array so using post method
+const checkAlreadyDataExist = async (req, res) => {
+    try {
+        const { bussinessNames, numbers, emails, pincode, district, state } = req.body;
+        console.log("regexArray", bussinessNames, numbers, emails, pincode, district, state)
+
+        
+        let filters = {$and:[]}
+        if (bussinessNames) {
+            const nameField = bussinessNames?.map((t) => (t.value.trim()))
+            const regexArray = nameField?.map(val => new RegExp(val, "i"))
+
+            const opticalNameOr = [
+                { optical_name1_db: { $in: regexArray } },
+                { optical_name2_db: { $in: regexArray } },
+                { optical_name3_db: { $in: regexArray } },
+            ]
+            filters.$and.push({$or:opticalNameOr})
+        }
+
+        if(numbers){
+            const mobileField = numbers.map((t)=>t.value.trim().toString())
+            const mobileOr = [
+                {mobile_1_db:{$in:mobileField}},
+                {mobile_2_db:{$in:mobileField}},
+                {mobile_3_db:{$in:mobileField}},
+            ]
+            filters.$and.push({$or:mobileOr})
+        }
+
+        if(emails){
+            const emailField = emails.map((i)=>i.value.trim())
+            const regexEmail = emailField.map(val => new RegExp(val, "i"))
+                const emailOr = [
+                { email_1_db: { $in: regexEmail } },
+                { email_2_db: { $in: regexEmail } },
+                { email_3_db: { $in: regexEmail } },
+            ]
+            filters.$and.push({$or:emailOr})
+        }
+        if(pincode){
+            filters.$and.push({pincode_db : pincode})
+        }
+        if(district){
+            filters.$and.push({district_db : district})
+        }
+        if(state){
+            filters.$and.push({state_db:state})
+        }
+        const result = await clientSubscriptionModel.find(filters)
+
+        res.status(200).json({ message: `Client already exist`,totalCount: result.length, result: result})
+    } catch (err) {
+        res.status(500).json({ message: "Error during deactivation", err: err.message });
+        console.log("Error during deactivation", err)
+    }
+}
+
+module.exports = { createSubscripbeUser,checkAlreadyDataExist, searchAllUserThroughQuery,CheckUserIdforExcelSheet, filterClientSubscriptionData, getAllUserSubsriptionIds, updateUserScription, searchUserSubsciption, CheckUserSubsciptionToRedirect,deactivateUserData }  

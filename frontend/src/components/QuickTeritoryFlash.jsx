@@ -5,12 +5,16 @@ import axios from "axios";
 import { base_url } from "../config/config";
 import { MdOutlineDownloadDone } from "react-icons/md";
 import { IoHourglassOutline } from "react-icons/io5";
+import { MdClose } from "react-icons/md";
+import ReactDOM from "react-dom";
 
-const QuickTeritoryFlash = () => {
+const QuickTeritoryFlash = ({ isOpen, onClose }) => {
   const { userLoginId } = useContext(AuthContext);
   const [reminderList, setReminderList] = useState([]);
   const [areaList, setAreaList] = useState([]);
   const [taskList, setTaskList] = useState([]);
+  const [userAssignTask, setUserAssignTask] = useState([]);
+  const [goals, setGoals] = useState([]);
 
   useEffect(() => {
     const fetch = async () => {
@@ -34,6 +38,20 @@ const QuickTeritoryFlash = () => {
             params: { dateFrom: new Date().toISOString().split("T")[0] },
           }
         );
+
+        const userAssignForm = await axios.get(
+          `${base_url}/users/get-userForm/${userLoginId}`
+        );
+        const userForm = userAssignForm.data.result;
+        console.log("userForm", userForm);
+        setUserAssignTask(userForm);
+
+        const goals = await axios.get(
+          `${base_url}/schedule/get-goals/${userLoginId}`
+        );
+        console.log("goals===================", goals.data.result);
+        setGoals(goals.data.result.goals_db);
+
         console.log("task", task.data);
         setTaskList(task.data.result);
         setAreaList(region.master_data_db);
@@ -44,137 +62,226 @@ const QuickTeritoryFlash = () => {
     };
     fetch();
   }, [userLoginId]);
-  return (
+
+  let goalsMap = new Map([
+    ["New Data Add", "new_data_add_db"],
+    ["No of New Calls", "no_of_new_calls_db"],
+    ["Leads", "leads_db"],
+    ["Demo", "demo_db"],
+    ["Follow Up", "follow_up_db"],
+    ["Target", "target_db"],
+    ["Training", "training_db"],
+    ["Installation", "installation_db"],
+    ["Recovery", "recovery_db"],
+    ["Support", "support_db"],
+  ]);
+
+  // Create reverse map for DB key → Display name
+  const reverseGoalsMap = new Map(
+    [...goalsMap.entries()].map(([display, dbKey]) => [dbKey, display])
+  );
+
+  const productTitles =
+    userAssignTask.task_product_matrix_db?.[0].products?.map(
+      (p) => p.productTitle
+    );
+
+  const products = Object.keys(goals);
+
+  // Collect all unique task names (demo_db, installation_db, etc.)
+  const allTasks = Array.from(
+    new Set(products.flatMap((prod) => Object.keys(goals[prod])))
+  );
+  //  if (!goals || goals.length === 0) return <p>No data available</p>;
+  return ReactDOM.createPortal(
     <div className={styles.main}>
-      <div className={styles.heading}>
-        <h2>Quick Overview</h2>
-      </div>
-      <div className={styles.content}>
-        <div className={styles.card}>
-          <div className={styles["card-heading"]}>
-            <h4>Today Task</h4>
-          </div>
-          <div className={styles.reminderdiv}>
-            {taskList.length > 0 ? (
-              <table className={styles.tables}>
+      <div className={styles.overlay}>
+        <div className={styles.closebtn}>
+          <MdClose onClick={onClose} className="icon-size" />
+        </div>
+        <div className={styles.heading}>
+          <h4>Quick Overview</h4>
+        </div>
+        <div className={styles.content}>
+          <div className={styles.contentup}>
+            <div
+              style={{
+                background: "#FFE7B8",
+              }}
+              className={styles.card}
+            >
+              <h4
+                style={{
+                  textAlign: "center",
+                  color: "#1E3A8A",
+                  fontSize: "14px",
+                  paddingBottom: "5px",
+                }}
+              >
+                Self Assign Task
+              </h4>
+
+              <table>
                 <thead>
-                  <th>Sr No</th>
-                  <th>Assign To</th>
-                  <th>Assign By</th>
-                  <th>Task Type</th>
-                  <th>Total Assign</th>
-                  <th>Deadline</th>
+                  <tr>
+                    <th style={{ fontSize: "12px" }}>Task / Product</th>
+                    {products.map((prod) => (
+                      <th key={prod} style={{ fontSize: "12px" }}>
+                        {prod}
+                      </th>
+                    ))}
+                  </tr>
                 </thead>
+
                 <tbody>
-                  {taskList.map((item, idx) => (
-                    <tr>
-                      <td>{idx + 1}</td>
-                      <td>{item.assignTo_db}</td>
-                      <td>{item.assignBy_db}</td>
-                      <td>{item.taskType_db}</td>
-                      <td>{item.total_task_db}</td>
-                      <td>{item.deadline_db}</td>
+                  {allTasks.map((task, index) => (
+                    <tr
+                      key={task}
+                      style={{
+                        backgroundColor:
+                          index % 2 === 0 ? "#FFE7B8" : "#FFFFFF",
+                        borderBottom: "1px solid #E5E7EB",
+                      }}
+                    >
+                      <td
+                        style={{
+                          color: "#0F172A",
+                        }}
+                      >
+                        {reverseGoalsMap.get(task)}
+                      </td>
+                      {products.map((prod) => {
+                        const data = goals[prod][task];
+                        return (
+                          <td
+                            key={prod + task}
+                            style={{
+                              // padding: "10px 14px",
+                              textAlign: "center",
+                              color: "#1E3A8A",
+                              fontWeight: "500",
+                            }}
+                          >
+                            {data ? data.assigned_db : "-"}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>
               </table>
-            ) : (
-              <h2>No Task Assign</h2>
-            )}
-          </div>
-        </div>
-        <div className={styles.card}>
-          <div className={styles["card-heading"]}>
-            <h4>Region</h4>
-          </div>
-          <div className={styles.quickdiv}>
-            <div className={styles.statediv}>
-              {areaList?.state?.map((item) => (
-                <p>{item}</p>
-              ))}
             </div>
-            <div className={styles.districtdiv}>
-              <span>
-                <h4>District</h4>
-                <h4>Total</h4>
-              </span>
-              {areaList?.district?.map((item) => (
-                <span>
-                  <p>{item.name}</p>
-                  <p>{item.total}</p>
-                </span>
-              ))}
-              {/* {areaList?.excelId?.map((item) => (
-                <span>
-                  <p>{item}</p>
-                </span>
-              ))} */}
-            </div>
-          </div>
-        </div>
-        <div className={styles.card}>
-          <div className={styles["card-heading"]}>
-            <h4>Todays Reminder</h4>
-          </div>
-          <div className={styles.reminderdiv}>
-            {reminderList.length > 0 && (
-              <table className={styles.tables}>
-                <tr>
-                  <th id={styles.ths}>Sr No</th>
-                  <th id={styles.ths}>Client Id</th>
-                  <th id={styles.ths}>Client Name</th>
-                  <th id={styles.ths}>Stage</th>
-                  <th id={styles.ths}>Date</th>
-                  <th id={styles.ths}>Time</th>
-                  <th id={styles.ths}>Action</th>
-                  <th id={styles.ths} className={styles.align}>
-                    Status
-                  </th>
-                  <th>User Id</th>
-                </tr>
-                {reminderList.length > 0 &&
-                  reminderList.map((item, idx) => (
-                    <tr key={item._id}>
-                      <td id={styles.tds}>{idx + 1}</td>
-                      <td id={styles.tds} title="Click to view">
-                        <strong
-                          className={styles.text}
-                          onClick={() => {
-                            redirectToClientPage(
-                              item.client_id,
-                              item.database_db
-                            );
-                          }}
-                        >
-                          {item.client_id}
-                        </strong>
+
+            <div
+              style={{
+                background: "#B8FFBA",
+              }}
+              className={styles.card}
+            >
+              <h4
+                style={{
+                  textAlign: "center",
+                  color: "#1E3A8A",
+                  fontSize: "14px",
+                  paddingBottom: "5px",
+                }}
+              >
+                Admin Assign Task
+              </h4>
+
+              <table style={{ fontSize: "12px" }}>
+                <thead>
+                  <tr style={{ fontSize: "12px" }}>
+                    <th style={{ fontSize: "12px" }}>Task ↓ / Product →</th>
+                    {productTitles?.map((prod, i) => (
+                      <th key={i} style={{ fontSize: "12px" }}>
+                        {prod}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {userAssignTask?.task_product_matrix_db?.map((task, i) => (
+                    <tr
+                      key={i}
+                      style={{
+                        backgroundColor: i % 2 === 0 ? "#B8FFBA" : "#FFFFFF",
+                        borderBottom: "1px solid #E5E7EB",
+                      }}
+                    >
+                      <td
+                        style={{
+                          // padding: "10px 14px",
+                          fontWeight: "500",
+                          color: "#0F172A",
+                        }}
+                      >
+                        {task.taskTitle}
                       </td>
-                      <td id={styles.tds}>{item.client_name_db}</td>
-                      <td id={styles.tds}>{item.stage_db}</td>
-                      <td id={styles.tds}>{item.date_db}</td>
-                      <td id={styles.tds}>{item.time_db}</td>
-                      <td id={styles.tds}>{item.operation_db}</td>
-                      <td id={styles.tds} className={styles.align}>
-                        {item.status_db == true ? (
-                          <MdOutlineDownloadDone />
-                        ) : (
-                          <IoHourglassOutline />
-                        )}
-                      </td>
-                      <td>{item.userId_db}</td>
+                      {productTitles.map((prodTitle, j) => {
+                        const product = task.products.find(
+                          (p) => p.productTitle === prodTitle
+                        );
+                        return (
+                          <td
+                            key={j}
+                            style={{
+                              // padding: "10px 14px",
+                              textAlign: "center",
+                              color: "#1E3A8A",
+                              fontWeight: "500",
+                            }}
+                          >
+                            {product ? product.num : 0}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
+                </tbody>
               </table>
-            )}
-            {reminderList.length === 0 && (
-              <div className={styles["noremainder-div"]}>
-                <h2>No Remainder Set</h2>
+            </div>
+          </div>
+          <div className={styles.contentdown}>
+            <div style={{ width: "50%", padding: "5px" }}>
+              <div className={styles.regiondiv}>
+                <div>
+                  <h4
+                    style={{
+                      textAlign: "center",
+                      color: "#1E3A8A",
+                      fontSize: "14px",
+                      paddingBottom: "5px",
+                    }}
+                  >
+                    Region
+                  </h4>
+                </div>
+                <div className={styles.region}>
+                  <strong>State</strong>
+                  <strong>District</strong>
+                </div>
+                {areaList?.state?.map((state, i) => (
+                  <div key={i} className={styles.region}>
+                    <div>{state}</div>
+                    <div className={styles.districtCell}>
+                     { areaList?.district?.map((item, j) => (
+                      <span>
+                        {item.name}{" "}
+                        <sup className={styles.distnotify}>{item.total}</sup>,
+                      </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.getElementById("extra-request-portal")
   );
 };
 

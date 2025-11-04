@@ -22,7 +22,7 @@ import { base_url } from "../../config/config";
 
 const SearchPincode = () => {
   const navigate = useNavigate();
-  const { userLoginId,userPermissions } = useContext(AuthContext);
+  const { userLoginId, userPermissions } = useContext(AuthContext);
   const { state, from } = useLocation();
   const [getSelectedTime, setGetSelectedTime] = useState("");
   const [taskDetails, setTaskDetails] = useState(null);
@@ -142,6 +142,7 @@ const SearchPincode = () => {
   const [selectedUserProduct, setSelectedUserProduct] = useState([]);
   const [refreshHistory, setRefreshHistory] = useState(false);
   const [isNewDataEntry, setIsNewDataEntry] = useState(false);
+  const [isNewDataExist, setIsNewDataExist] = useState(false)
   const [stageTab, setStageTab] = useState("Planner");
   const [selectNewStage, setSelectNewStage] = useState([]);
   const [amountHandle, setAmountHandle] = useState({
@@ -885,6 +886,51 @@ const SearchPincode = () => {
     fetch();
   }, []);
 
+  //CHECING RECORD ALREADY EXIST IN DB OR NOT
+  useEffect(() => {
+        if (
+      clientDetails.bussinessNames?.length > 0 &&
+      clientDetails.numbers?.length > 0 &&
+      clientDetails.emails?.length > 0 &&
+      clientDetails.pincode.trim() &&
+      clientDetails.state.trim() &&
+      clientDetails.district.trim() &&
+      isNewDataEntry
+    ) {
+      const debouncing = setTimeout( async () => {
+          try {
+            const result = await axios.post(
+              `${base_url}/clients/check-already-exist`,
+              {
+                ...clientDetails,
+              }
+            );
+            console.log("record already exist", result.data);
+            if (result?.data?.totalCount > 0) {
+              alert(result.data.message);
+              setIsNewDataExist(true)
+              setCheckDisplaySearchClients(true);
+              setAllSearchClientData(result?.data);
+            }else{
+              setIsNewDataExist(false)
+
+            }
+          } catch (err) {
+            console.log("internal error", err);
+          }
+      }, 500);
+      return ()=>{clearTimeout(debouncing)}
+
+    }
+  }, [
+    clientDetails.bussinessNames,
+    clientDetails.numbers,
+    clientDetails.emails,
+    clientDetails.pincode,
+    clientDetails.state,
+    clientDetails.district,
+  ]);
+
   // RAW DB -> CLIENT DB && CLIENTHISTORY --> SAVING DETAILS AND ALSO SEND COPY TO CLIENT HISTORY
   const handleSaveRawDBDetails = async () => {
     try {
@@ -1003,6 +1049,9 @@ const SearchPincode = () => {
   const handleSaveClientDetails = async () => {
     // console.log("tracker", clientDetails.tracker);
     console.log("tracker", userLoginId);
+    if(isNewDataExist){
+      return alert("Record already exist in Database")
+    }
     if (!clientDetails.bussinessNames[0]?.value) {
       return alert("First business name cannot be Empty");
     }
@@ -1677,22 +1726,24 @@ const SearchPincode = () => {
   };
 
   const goToBack = (from) => {
-    if(state?.from === "searchClient"){
+    if (state?.from === "searchClient") {
       navigate("/search-client");
     }
-    if(state?.from === "userConfiguration"){
+    if (state?.from === "userConfiguration") {
       navigate("/");
     }
   };
 
-  const handleDeactive =async()=>{
-    try{
-      const result  = await  axios.put(`${base_url}/raw-data/deactivate-rawdata/${currentClientId}`)
-      alert(result.data.message)
-    }catch(err){
-      console.log("internal  error",err)
+  const handleDeactive = async () => {
+    try {
+      const result = await axios.put(
+        `${base_url}/raw-data/deactivate-rawdata/${currentClientId}`
+      );
+      alert(result.data.message);
+    } catch (err) {
+      console.log("internal  error", err);
     }
-  }
+  };
   return (
     <>
       <div className={styles.main}>
@@ -2446,7 +2497,7 @@ const SearchPincode = () => {
                 // disabled={!checkPermissionManagement?.create_P}
                 onClick={() => {
                   handleClientNewForm();
-                  // setIsNewDataEntry(true);
+                  setIsNewDataEntry(true);
                 }}
               >
                 New
@@ -2476,7 +2527,7 @@ const SearchPincode = () => {
                 disabled={
                   !checkPermissionManagement?.download_P || isUserDB === true
                 }
-              >
+              >                                                                                      
                 Download
               </button> */}
               {/* <button
@@ -2498,15 +2549,18 @@ const SearchPincode = () => {
                   handleAllSearchClientData();
                   setCheckDisplaySearchClients((prev) => !prev);
                 }}
-                >
+              >
                 Search
               </button>
-            { userPermissions.delete_P &&   <button
-                  
-                  onClick={()=>{handleDeactive()}}
+              {userPermissions.delete_P && (
+                <button
+                  onClick={() => {
+                    handleDeactive();
+                  }}
                 >
                   Deactivate
-                </button>}
+                </button>
+              )}
               <button
                 style={{ display: activedBackButton === true ? "" : "none" }}
                 onClick={() => {

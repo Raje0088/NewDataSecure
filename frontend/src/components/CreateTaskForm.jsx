@@ -19,17 +19,33 @@ const CreateTaskForm = () => {
   const [date, setDate] = useState("");
 
   const [addTask, setAddTask] = useState([
-    { title: "New Data Add", num: "", completed: 0 },
+
+        { title: "New Data Add", num: "", completed: 0 },
+    { title: "No of New Calls", num: "", completed: 0 },
     { title: "Leads", num: "", completed: 0 },
-    { title: "Training", num: "", completed: 0 },
+    { title: "Demo", num: "", completed: 0 },
     { title: "Follow Up", num: "", completed: 0 },
+    { title: "Target", num: "", completed: 0 },
+    { title: "Training", num: "", completed: 0 },
+    { title: "Installation", num: "", completed: 0 },
+    { title: "Recovery", num: "", completed: 0 },
+    { title: "Support", num: "", completed: 0 },
+    { title: "Product", num: "", completed: 0 },
+    
   ]);
   const [addRequest, setAddRequest] = useState([
-    { title: "New data add", num: "", text: "", completed: 0 },
-    { title: "Leads", num: "", text: "", completed: 0 },
-    { title: "Training", num: "", text: "", completed: 0 },
-    { title: "Follow Up", num: "", text: "", completed: 0 },
-    { title: "Product", num: "", text: "", completed: 0 },
+
+        { title: "New data add", num: "", text: "", completed: 0  },
+    { title: "No of New Calls", num: "", text: "", completed: 0  },
+    { title: "Leads", num: "", text: "" , completed: 0 },
+    { title: "Demo", num: "", text: "", completed: 0  },
+    { title: "Follow Up", num: "", text: "" , completed: 0 },
+    { title: "Target", num: "", text: "", completed: 0  },
+    { title: "Training", num: "", text: "", completed: 0  },
+    { title: "Installation", num: "", text: "", completed: 0  },
+    { title: "Recovery", num: "", text: "" , completed: 0 },
+    { title: "Support", num: "", text: "", completed: 0  },
+    { title: "Product", num: "", text: "", completed: 0  },
   ]);
 
   useEffect(() => {
@@ -296,6 +312,90 @@ const CreateTaskForm = () => {
                     className="userassigntask-input"
                   />
                 </div>
+                <div className="assign-task-item">
+                  <p>{addTask[4].title}</p>{" "}
+                  <input
+                    type="number"
+                    value={addTask[4].num}
+                    onChange={(e) => {
+                      const value = Math.max(0, e.target.value);
+                      handleTitleChange(4, "num", value);
+                    }}
+                    className="userassigntask-input"
+                  />
+                </div>
+                <div className="assign-task-item">
+                  <p>{addTask[5].title}</p>{" "}
+                  <input
+                    type="number"
+                    value={addTask[5].num}
+                    onChange={(e) => {
+                      const value = Math.max(0, e.target.value);
+                      handleTitleChange(5, "num", value);
+                    }}
+                    className="userassigntask-input"
+                  />
+                </div>
+                <div className="assign-task-item">
+                  <p>{addTask[6].title}</p>{" "}
+                  <input
+                    type="number"
+                    value={addTask[6].num}
+                    onChange={(e) => {
+                      const value = Math.max(0, e.target.value);
+                      handleTitleChange(6, "num", value);
+                    }}
+                    className="userassigntask-input"
+                  />
+                </div>
+                <div className="assign-task-item">
+                  <p>{addTask[7].title}</p>{" "}
+                  <input
+                    type="number"
+                    value={addTask[7].num}
+                    onChange={(e) => {
+                      const value = Math.max(0, e.target.value);
+                      handleTitleChange(7, "num", value);
+                    }}
+                    className="userassigntask-input"
+                  />
+                </div>
+                <div className="assign-task-item">
+                  <p>{addTask[8].title}</p>{" "}
+                  <input
+                    type="number"
+                    value={addTask[8].num}
+                    onChange={(e) => {
+                      const value = Math.max(0, e.target.value);
+                      handleTitleChange(8, "num", value);
+                    }}
+                    className="userassigntask-input"
+                  />
+                </div>
+                <div className="assign-task-item">
+                  <p>{addTask[9].title}</p>{" "}
+                  <input
+                    type="number"
+                    value={addTask[9].num}
+                    onChange={(e) => {
+                      const value = Math.max(0, e.target.value);
+                      handleTitleChange(9, "num", value);
+                    }}
+                    className="userassigntask-input"
+                  />
+                </div>
+                <div className="assign-task-item">
+                  <p>{addTask[10].title}</p>{" "}
+                  <input
+                    type="number"
+                    value={addTask[10].num}
+                    onChange={(e) => {
+                      const value = Math.max(0, e.target.value);
+                      handleTitleChange(10, "num", value);
+                    }}
+                    className="userassigntask-input"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -411,6 +511,126 @@ const CreateTaskForm = () => {
                     value={addRequest[4].text}
                     onChange={(e) => {
                       handleRequestTitleChange(4, "text", e.target.value);
+                    }}
+                    className="userassigntask-input align-input"
+                  />
+                </div>
+                <div className="request-item">
+                  <p>{addRequest[5].title}</p>
+                  <input
+                    type="number"
+                    value={addRequest[5].num}
+                    onChange={(e) => {
+                      const value = Math.max(0, e.target.value);
+                      handleRequestTitleChange(5, "num", value);
+                    }}
+                    className="userassigntask-input"
+                  />
+                  <input
+                    type="text"
+                    value={addRequest[5].text}
+                    onChange={(e) => {
+                      handleRequestTitleChange(5, "text", e.target.value);
+                    }}
+                    className="userassigntask-input align-input"
+                  />
+                </div>
+                <div className="request-item">
+                  <p>{addRequest[6].title}</p>
+                  <input
+                    type="number"
+                    value={addRequest[6].num}
+                    onChange={(e) => {
+                      const value = Math.max(0, e.target.value);
+                      handleRequestTitleChange(6, "num", value);
+                    }}
+                    className="userassigntask-input"
+                  />
+                  <input
+                    type="text"
+                    value={addRequest[6].text}
+                    onChange={(e) => {
+                      handleRequestTitleChange(6, "text", e.target.value);
+                    }}
+                    className="userassigntask-input align-input"
+                  />
+                </div>
+                <div className="request-item">
+                  <p>{addRequest[7].title}</p>
+                  <input
+                    type="number"
+                    value={addRequest[7].num}
+                    onChange={(e) => {
+                      const value = Math.max(0, e.target.value);
+                      handleRequestTitleChange(7, "num", value);
+                    }}
+                    className="userassigntask-input"
+                  />
+                  <input
+                    type="text"
+                    value={addRequest[7].text}
+                    onChange={(e) => {
+                      handleRequestTitleChange(7, "text", e.target.value);
+                    }}
+                    className="userassigntask-input align-input"
+                  />
+                </div>
+                <div className="request-item">
+                  <p>{addRequest[8].title}</p>
+                  <input
+                    type="number"
+                    value={addRequest[8].num}
+                    onChange={(e) => {
+                      const value = Math.max(0, e.target.value);
+                      handleRequestTitleChange(8, "num", value);
+                    }}
+                    className="userassigntask-input"
+                  />
+                  <input
+                    type="text"
+                    value={addRequest[8].text}
+                    onChange={(e) => {
+                      handleRequestTitleChange(8, "text", e.target.value);
+                    }}
+                    className="userassigntask-input align-input"
+                  />
+                </div>
+                <div className="request-item">
+                  <p>{addRequest[9].title}</p>
+                  <input
+                    type="number"
+                    value={addRequest[9].num}
+                    onChange={(e) => {
+                      const value = Math.max(0, e.target.value);
+                      handleRequestTitleChange(9, "num", value);
+                    }}
+                    className="userassigntask-input"
+                  />
+                  <input
+                    type="text"
+                    value={addRequest[9].text}
+                    onChange={(e) => {
+                      handleRequestTitleChange(9, "text", e.target.value);
+                    }}
+                    className="userassigntask-input align-input"
+                  />
+                </div>
+                <div className="request-item">
+                  <p>{addRequest[10].title}</p>
+                  <input
+                    type="number"
+                    value={addRequest[10].num}
+                    onChange={(e) => {
+                      const value = Math.max(0, e.target.value);
+                      handleRequestTitleChange(10, "num", value);
+                    }}
+                    className="userassigntask-input"
+                  />
+                  <input
+                    type="text"
+                    value={addRequest[10].text}
+                    onChange={(e) => {
+                      handleRequestTitleChange(10, "text", e.target.value);
                     }}
                     className="userassigntask-input align-input"
                   />

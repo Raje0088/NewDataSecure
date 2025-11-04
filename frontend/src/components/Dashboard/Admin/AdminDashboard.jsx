@@ -47,7 +47,7 @@ const AdminDashboard = () => {
   const [isReport, setIsReport] = useState(false);
   const [remainder, setRemainder] = useState([]);
   const [remainderTotalCount, setRemainderTotalCount] = useState(0);
-  const [buttonTranverseId, setButtonTranverseId] = useState(null);
+  const [buttonTranverseId, setButtonTranverseId] = useState("quickTeritory");
   const [selectedClients, setSelectedClients] = useState([]);
   const [toggleMenu, setToggleMenu] = useState(false);
   const [assigntaskNotify, setAssignTaskNotify] = useState(0);
@@ -401,6 +401,19 @@ const AdminDashboard = () => {
                 )}
               </button>
             </div>
+            <button
+              style={{
+                backgroundColor:
+                  buttonTranverseId === "quickTeritory"
+                    ? "hsl(241, 100%, 81%)"
+                    : "",
+              }}
+              onClick={() => {
+                setButtonTranverseId("quickTeritory");
+              }}
+            >
+              Quick Overview
+            </button>
           </div>
           <div className={styles["show-content"]}>
             {/* ===========================Schedule Optima=============================== */}
@@ -411,7 +424,6 @@ const AdminDashboard = () => {
                   onCheckExtraTask={handleCheckExtraTask}
                   onShowOpenRequest={checkExtraTask}
                 />
-                <QuickTeritoryFlash />
               </>
             )}
 
@@ -493,6 +505,19 @@ const AdminDashboard = () => {
                 </div>
               </>
             )}
+
+            {/* ===========================QUICK TERITORY=============================== */}
+
+            {buttonTranverseId === "quickTeritory" && (
+              <>
+                <QuickTeritoryFlash
+                  isOpen={buttonTranverseId}
+                  onClose={() => {
+                    setButtonTranverseId("");
+                  }}
+                />
+              </>
+            )}
             {/* ===========================REMAINDER=============================== */}
             {buttonTranverseId === "Remainder" && (
               <div className={styles.remainderdiv}>
@@ -503,6 +528,8 @@ const AdminDashboard = () => {
                 />
               </div>
             )}
+
+
             {/* ===========================UserConfiguration=============================== */}
             {buttonTranverseId === "UserConfiguration" && (
               <div className={styles.remainderdiv}>

@@ -21,10 +21,14 @@ const setGoals = async (req, res) => {
     // console.log("goals bolte", goals);
 
     let goalsMap = new Map([
+      ["New Data Add", "new_data_add_db"],
       ["No of New Calls", "no_of_new_calls_db"],
-      ["Demo", "demo_db"],
-      ["Installation", "installation_db"],
+      ["Leads", "leads_db"],
+      ["Demo" , "demo_db"],
+      ["Follow Up" , "follow_up_db"],
       ["Target", "target_db"],
+      ["Training", "training_db"],
+      ["Installation", "installation_db"],
       ["Recovery", "recovery_db"],
       ["Support", "support_db"],
     ])
@@ -116,7 +120,8 @@ const getScheduleOptima = async (req, res) => {
     const userId = req.params.id;
     const curr_date = new Date().toLocaleDateString("en-GB")
 
-    const result = await scheduleOptimaModel.findOne({ userId_db: userId, date_todo_db: curr_date })
+    const result = await scheduleOptimaModel.findOne({ userId_db: userId}).sort({_id:-1})
+    console.log("goals --------------",result)
     res.status(200).json({ message: `${userId} todays  goals report`, result })
   } catch (err) {
     console.log("internal  error", err)

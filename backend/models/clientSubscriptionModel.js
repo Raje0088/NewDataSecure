@@ -97,10 +97,12 @@ const clientSubscriptionSchema = new mongoose.Schema({
         mode: String,
     },
     master_data_db: {
-        state: String,
-        district: String,
-        pincode: String,
-        excelId: String,
+        assignTo:{type:String,default:""},
+        excelId: { type: String },
+        state: { type: [String], default: [] },
+        district: [{ name: String, total: Number }],
+        pincode: { type: [String], default: [] },
+        clientIds: { type: [String], default: [] },
     }
 }, { timestamps: true })
 

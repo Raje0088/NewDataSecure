@@ -7,10 +7,23 @@ const cron = require("node-cron");
 
 const saveUserForm = async (req, res) => {
     try {
-        const { assignTask, requestTask, productTask, assignToId, assignById, deadline, date, selectedExcel } = req.body;
-        console.log("Deadline", deadline);
-        console.log("assigntask", assignTask, requestTask, productTask, selectedExcel)
+        const { assignTask, requestTask,taskProductMatrix, productTask, assignToId, assignById, deadline, date, selectedExcel } = req.body;
+        // console.log("assigntask", assignTask, requestTask, productTask, selectedExcel)
+        console.log("taskProductMatrix", taskProductMatrix);
+        
+        const formatTaskProductMatrix = (matrixObj) => {
+            if (!matrixObj || typeof matrixObj !== "object") return []
 
+            return Object.entries(matrixObj).map(([taskTitle, products]) => ({
+                taskTitle,
+                products: Object.entries(products).map(([productTitle, num]) => ({
+                    productTitle,
+                    num,
+                }))
+            }))
+        }
+        const formattedMatrix = formatTaskProductMatrix(taskProductMatrix);
+        console.log("formattedMatrix", formattedMatrix);
 
         const result = await userFormModel.create({
             assign_task: assignTask,
@@ -23,6 +36,7 @@ const saveUserForm = async (req, res) => {
             deadline_db: deadline,
             cron_deadline_db: deadline,
             excelId_db: selectedExcel,
+            task_product_matrix_db: formattedMatrix,
         })
         // result.save();
         const io = getIO();
@@ -223,11 +237,11 @@ cron.schedule("30 * * * *", async () => {
         console.log("internal error", err)
     }
 })
- 
+
 const getUserAssignFormHistory = async (req, res) => {
     try {
         const userId = req.params.id
-        console.log("userId",userId)
+        console.log("userId", userId)
         const result = await userFormModel.find({ assignToId_db: userId }).sort({ _id: -1 }).limit(10);
         res.status(200).json({ message: "User Form History", result })
     } catch (err) {

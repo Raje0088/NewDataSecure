@@ -20,6 +20,7 @@ import { IoReceipt } from "react-icons/io5";
 import { base_url } from "../../config/config";
 import { AuthContext } from "../../context-api/AuthContext";
 import { useContext } from "react";
+import DisplaySearchClientsPortal from "../ClientPage/DisplaySearchClientsPortal";
 
 const UserPage = () => {
   const { userLoginId, userPermissions } = useContext(AuthContext);
@@ -145,6 +146,8 @@ const UserPage = () => {
   const [storedPaidAmount, setStoredPaidAmount] = useState("");
   const [storedBalanceAmount, setStoredBalanceAmount] = useState("");
   const [refreshHistory, setRefreshHistory] = useState(false);
+  const [isNewDataEntry, setIsNewDataEntry] = useState(false);
+  const [isNewDataExist, setIsNewDataExist] = useState(false);
   const [stageTab, setStageTab] = useState("Planner");
   const [selectNewStage, setSelectNewStage] = useState([]);
   const [amountHandle, setAmountHandle] = useState({
@@ -463,6 +466,51 @@ const UserPage = () => {
     fetch();
   }, []);
 
+  //CHECING RECORD ALREADY EXIST IN DB OR NOT
+  useEffect(() => {
+    if (
+      clientDetails.bussinessNames?.length > 0 &&
+      clientDetails.numbers?.length > 0 &&
+      clientDetails.emails?.length > 0 &&
+      clientDetails.pincode.trim() &&
+      clientDetails.state.trim() &&
+      clientDetails.district.trim() &&
+      isNewDataEntry
+    ) {
+      const debouncing = setTimeout(async () => {
+        try {
+          const result = await axios.post(
+            `${base_url}/subscribe-user/check-already-exist`,
+            {
+              ...clientDetails,
+            }
+          );
+          console.log("record already exist", result.data);
+          if (result?.data?.totalCount > 0) {
+            alert(result.data.message);
+            setIsNewDataExist(true);
+            setCheckDisplaySearchClients(true);
+            setAllSearchClientData(result?.data);
+          } else {
+            setIsNewDataExist(false);
+          }
+        } catch (err) {
+          console.log("internal error", err);
+        }
+      }, 500);
+      return () => {
+        clearTimeout(debouncing);
+      };
+    }
+  }, [
+    clientDetails.bussinessNames,
+    clientDetails.numbers,
+    clientDetails.emails,
+    clientDetails.pincode,
+    clientDetails.state,
+    clientDetails.district,
+  ]);
+
   function todaysDate() {
     const today = new Date();
     const year = today.getFullYear();
@@ -630,6 +678,49 @@ const UserPage = () => {
     //console.log("product list", selectOptions);
     setSelectedUserProduct(selectOptions);
   };
+
+    //FUNCTION FOR FETCH ALL SEARCH CLIENT DATA
+    const handleAllSearchClientData = async () => {
+      try {
+        console.log(
+          "searches are",
+          clientDetails.clientName,
+          clientDetails.bussinessNames[0].value,
+          clientDetails.numbers[0].value,
+          clientDetails.addresses[0].value,
+          clientDetails.emails[0].value,
+          clientDetails.pincode,
+          clientDetails.district,
+          clientDetails.state,
+          clientDetails.clientId
+        );
+        const result = await axios.get(
+          `${base_url}/subscribe-user/search-alluser-match`,
+          {
+            params: {
+              name: clientDetails.clientName || "",
+              opticalName: clientDetails.bussinessNames[0].value || "",
+              mobile: clientDetails.numbers[0].value || "",
+              address: clientDetails.addresses[0].value || "",
+              email: clientDetails.emails[0].value || "",
+              pincode: clientDetails.pincode || "",
+              district: clientDetails.district || "",
+              state: clientDetails.state || "",
+              clientId: clientDetails.clientId || "",
+            },
+          }
+        );
+        setAllSearchClientData(result.data);
+        //console.log("search found", result.data);
+      } catch (err) {
+        console.log("internal error", err);
+      }
+    };
+    const handleClientIdClick = (clickId) => {
+    //console.log("client page ", clickId);
+    setCurrentClientId(clickId);
+  };
+
   const handleSwichTo = () => {
     navigate("/client-page");
   };
@@ -738,6 +829,9 @@ const UserPage = () => {
     //   clientDetails.amountDetails,
     //   clientDetails.amountHistory
     // );
+       if(isNewDataExist){
+      return alert("Record already exist in Database")
+    }
     try {
       clientDetails.tracker.no_of_new_calls_db = {
         completed: true,
@@ -1081,8 +1175,10 @@ const UserPage = () => {
               <input type="text" value={clientDetails.sr_no} readOnly={true} />
               <input
                 type="text"
-                value={clientDetails.userSubscriptionId}
-                readonly
+                value={clientDetails.clientId}
+                onChange={(e) => {
+                  handleSearchInput("clientId", e.target.value);
+                }}
               />
             </div>
             <div className={styles.heading}>
@@ -1817,7 +1913,7 @@ const UserPage = () => {
                   style={{ fontSize: "40px", color: "white" }}
                 />
               </div>
-              <button onClick={handleClientNewForm}>New</button>
+              <button onClick={()=>{handleClientNewForm();setIsNewDataEntry(true)}}>New</button>
               {isUnsavedNewForm === true ? (
                 <button onClick={handleSaveUserDetails}>Save</button>
               ) : (
@@ -1831,7 +1927,10 @@ const UserPage = () => {
                   Update
                 </button>
               )}
-              <button>Search</button>
+              <button                 onClick={() => {
+                  handleAllSearchClientData();
+                  setCheckDisplaySearchClients((prev) => !prev);
+                }}>Search</button>
               {userPermissions.delete_P && (
                 <button
                   onClick={() => {
@@ -1849,7 +1948,15 @@ const UserPage = () => {
               >
                 Back
               </button>
-
+              {checkDisplaySearchClients && (
+                <DisplaySearchClientsPortal
+                  onClientIdClick={handleClientIdClick}
+                  onAllSearchClientData={allSearchClientData}
+                  onClose={() => {
+                    setCheckDisplaySearchClients(false);
+                  }}
+                />
+              )}
               <div
                 className={styles["arrow-icon"]}
                 style={{
