@@ -1,5 +1,5 @@
 const { viewExcelModel } = require("../models/viewExcelModel")
-const {UserModel} = require("../models/user")
+const { UserModel } = require("../models/user")
 
 const getTrackerUserToDumpExcel = async (req, res) => {
     try {
@@ -90,11 +90,11 @@ const getAllExcelSheetRecord = async (req, res) => {
         const { assign } = req.query;
         let result
 
-        console.log("assign",assign)
+        console.log("assign", assign)
         if (assign === "true") {
-            result = await viewExcelModel.find({assignTo_db:{$ne:"NA"}})
+            result = await viewExcelModel.find({ assignTo_db: { $ne: "NA" } })
         } else if (assign === "false") {
-            result = await viewExcelModel.find({assignTo_db:"NA"})
+            result = await viewExcelModel.find({ assignTo_db: "NA" })
         } else {
             result = await viewExcelModel.find()
         }
@@ -105,39 +105,41 @@ const getAllExcelSheetRecord = async (req, res) => {
     }
 }
 
-const updateAssignExcelToUser = async(req,res)=>{
-    try{
-        const {title,excelId,assignTo, assignBy} = req.query;
-        const result = await viewExcelModel.updateOne({dumpBy_db:excelId},
+const updateAssignExcelToUser = async (req, res) => {
+    try {
+        const { title, excelId, assignTo, assignBy } = req.query;
+        console.log("excel", title, excelId)
+        const result = await viewExcelModel.updateOne({ dumpBy_db: excelId },
             {
-                $set:{
-                    assignTo_db:assignTo,
-                    assignBy_db:assignBy,
+                $set: {
+                    assignTo_db: assignTo,
+                    assignBy_db: assignBy,
                 }
             },
             {
-                new:true,
+                new: true,
             }
         )
-        console.log(":rer",result,excelId)
-        await UserModel.updateOne({generateUniqueId:assignTo},
+        const userId = assignTo.split("-")[0].trim()
+        console.log(":rer", userId, excelId)
+        const userEx = await UserModel.updateOne({ generateUniqueId: userId },
             {
-                $set:{
-                    master_data_db:{
-                        excelId:excelId,
-                    }
+                "master_data_db.excelId": {
+                    title,
+                    excelId
                 }
             },
             {
-                new:true,
+                new: true,
             }
         )
-        res.status(200).json({message:`Excel Successfully Assign to ${assignTo}`})
-    }catch(err){
+        console.log("userEx", userEx)
+        res.status(200).json({ message: `Excel Successfully Assign to ${assignTo}` })
+    } catch (err) {
         res.status(500).json({ message: "internal error", err: err.message })
-        console.log("internal error",err)
+        console.log("internal error", err)
     }
 }
 
 
-module.exports = { getTrackerUserToDumpExcel,updateAssignExcelToUser, recordTracker, getExcelRecord, getAllExcelSheetRecord }
+module.exports = { getTrackerUserToDumpExcel, updateAssignExcelToUser, recordTracker, getExcelRecord, getAllExcelSheetRecord }

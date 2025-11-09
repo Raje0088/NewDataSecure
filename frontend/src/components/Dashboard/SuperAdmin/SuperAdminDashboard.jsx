@@ -258,7 +258,7 @@ const SuperAdminDashboard = () => {
           />
         </div>
         <header className={styles.header}>
-          <h3>{userPermissions.userName} Dashboard</h3>
+          <h3>Dashboard For {userPermissions.userName}</h3>
         </header>
         <div className={styles["box-div"]}>
           <div className={`${styles.box1} ${toggleMenu ? styles.open : ""}`}>

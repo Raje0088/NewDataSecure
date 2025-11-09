@@ -11,21 +11,21 @@ const UserAssignTask = ({ executiveId }) => {
   const { userLoginId } = useContext(AuthContext);
   const [userHistory, setUserHistory] = useState([]);
   const [addTask, setAddTask] = useState([
-    { title: "New Data Add", num: "" },
-    { title: "No of New Calls", num: "" },
+    { title: "New Calls", num: "" },
+    { title: "New Data", num: "" },
     { title: "Leads", num: "" },
     { title: "Demo", num: "" },
-    { title: "Follow Up", num: "" },
-    { title: "Target", num: "" },
-    { title: "Training", num: "" },
     { title: "Installation", num: "" },
+    { title: "Training", num: "" },
+    { title: "Target", num: "" },
     { title: "Recovery", num: "" },
     { title: "Support", num: "" },
+    { title: "Follow Up", num: "" },
     { title: "Product", num: "" },
   ]);
   const [addRequest, setAddRequest] = useState([
-    { title: "New data add", num: "", text: "" },
-    { title: "No of New Calls", num: "", text: "" },
+    { title: "New Calls", num: "", text: "" },
+    { title: "New data", num: "", text: "" },
     { title: "Leads", num: "", text: "" },
     { title: "Demo", num: "", text: "" },
     { title: "Follow Up", num: "", text: "" },
@@ -45,7 +45,7 @@ const UserAssignTask = ({ executiveId }) => {
   const [excelIdList, setExcelIdList] = useState([]);
   const [userAssignProduct, setUserAssignProduct] = useState([]);
   const [taskProductMatrix, setTaskProductMatrix] = useState({});
-  
+
   useEffect(() => {
     const fetchExcel = async () => {
       try {
@@ -72,8 +72,11 @@ const UserAssignTask = ({ executiveId }) => {
         //   min: 0,
         //   max: 0,
         // }));
-    console.log("user ---------",user.assignProduct.map((item)=>(item.label)))
-    const userProducts = user.assignProduct.map((item)=>(item.label))
+        console.log(
+          "user ---------",
+          user.assignProduct.map((item) => item.label)
+        );
+        const userProducts = user.assignProduct.map((item) => item.label);
         // ============ IF EXIST DATA THEN DISPLAY IT ===================
         const result = await axios.get(
           `${base_url}/users/get-userForm/${executiveId}`
@@ -81,19 +84,18 @@ const UserAssignTask = ({ executiveId }) => {
         console.log("user task details", result.data.result, executiveId);
         const data = result.data.result;
         console.log("-----------------------", data?.task_product_matrix_db);
-       if (Array.isArray(data?.task_product_matrix_db)) {
-  const transformed = {};
-  data.task_product_matrix_db.forEach((task) => {
-    transformed[task.taskTitle] = {};
-    task.products.forEach((p) => {
-      transformed[task.taskTitle][p.productTitle] = p.num || 0;
-    });
-  });
-  setTaskProductMatrix(transformed);
-} else {
-  setTaskProductMatrix({});
-}
-
+        if (Array.isArray(data?.task_product_matrix_db)) {
+          const transformed = {};
+          data.task_product_matrix_db.forEach((task) => {
+            transformed[task.taskTitle] = {};
+            task.products.forEach((p) => {
+              transformed[task.taskTitle][p.productTitle] = p.num || 0;
+            });
+          });
+          setTaskProductMatrix(transformed);
+        } else {
+          setTaskProductMatrix({});
+        }
 
         const updatedTasks = addTask.map((task, index) => {
           const apiTask = data?.assign_task[index];
@@ -144,24 +146,22 @@ const UserAssignTask = ({ executiveId }) => {
 
   useEffect(() => {
     if (userAssignProduct.length > 0 && addTask.length > 0) {
-        setTaskProductMatrix((prev)=>{
-          if(Object.keys(prev).length > 0) return prev;
+      setTaskProductMatrix((prev) => {
+        if (Object.keys(prev).length > 0) return prev;
 
-          //otherwise initialize new
-          const matrix = {} // Object, not array
-          addTask.forEach((task)=>{
-            matrix[task.title] = {}
-            userAssignProduct.forEach((prod) => {
-              matrix[task.title][prod.title] = 0;
-            })
-          })
-          console.log("Initialized matrix",matrix)
-          return matrix;
-        })
+        //otherwise initialize new
+        const matrix = {}; // Object, not array
+        addTask.forEach((task) => {
+          matrix[task.title] = {};
+          userAssignProduct.forEach((prod) => {
+            matrix[task.title][prod.title] = 0;
+          });
+        });
+        console.log("Initialized matrix", matrix);
+        return matrix;
+      });
     }
   }, [userAssignProduct, addTask]);
-
-
 
   const handleMatrixChange = (taskTitle, productTitle, value) => {
     setTaskProductMatrix((prev) => ({
@@ -173,9 +173,7 @@ const UserAssignTask = ({ executiveId }) => {
     }));
   };
 
-
-
-  console.log("taskProductMatrix",taskProductMatrix)
+  console.log("taskProductMatrix", taskProductMatrix);
   const handleaddTask = () => {
     setAddTask([...addTask, { title: "", num: "" }]);
     console.log("task-", addTask);
@@ -226,7 +224,7 @@ const UserAssignTask = ({ executiveId }) => {
         assignToId: executiveId,
         deadline: deadline,
         date: date,
-        taskProductMatrix:taskProductMatrix,
+        taskProductMatrix: taskProductMatrix,
         selectedExcel: selectedExcelId,
       });
       console.log("User Task Saved", result.data);
@@ -281,7 +279,7 @@ const UserAssignTask = ({ executiveId }) => {
           </select>
         </div> */}
         <div className="matrix-table-container">
-          <h4 style={{marginBottom:"10px"}}>Assign Task</h4>
+          <h4 style={{ marginBottom: "10px" }}>Assign Task</h4>
           <table className="matrix-table">
             <thead>
               <tr>

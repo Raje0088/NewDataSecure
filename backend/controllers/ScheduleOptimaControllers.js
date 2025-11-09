@@ -14,6 +14,7 @@ const setGoals = async (req, res) => {
   try {
     const { userId, date, deadline, goals, time } = req.body;
 
+
     if (!userId || !date || !time || !goals) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -21,11 +22,11 @@ const setGoals = async (req, res) => {
     // console.log("goals bolte", goals);
 
     let goalsMap = new Map([
-      ["New Data Add", "new_data_add_db"],
-      ["No of New Calls", "no_of_new_calls_db"],
-      ["Leads", "leads_db"],
+      ["New Data Add", "new_data_db"],
+      ["No of New Calls", "new_calls_db"],
+      ["Leads", "lead_db"],
       ["Demo" , "demo_db"],
-      ["Follow Up" , "follow_up_db"],
+      ["Follow Up" , "followUp_db"],
       ["Target", "target_db"],
       ["Training", "training_db"],
       ["Installation", "installation_db"],
@@ -83,7 +84,7 @@ const setGoals = async (req, res) => {
     console.log("fulldeadline", fullDeadline)
     const finalSchedule = await scheduleOptimaModel.create({
       userId_db: userId,
-      date_todo_db: new Date().toLocaleDateString("en-GB"),
+      date_todo_db: date,
       deadline_db: deadline || "23:59:00",
       cron_deadline_db: utcDeadline,
       goals_db: transformGoals,
@@ -118,9 +119,9 @@ cron.schedule('5 * * * *', async () => {
 const getScheduleOptima = async (req, res) => {
   try {
     const userId = req.params.id;
-    const curr_date = new Date().toLocaleDateString("en-GB")
+    const curr_date = new Date().toISOString().split("T")[0]
 
-    const result = await scheduleOptimaModel.findOne({ userId_db: userId}).sort({_id:-1})
+    const result = await scheduleOptimaModel.findOne({ userId_db: userId,date_todo_db:curr_date})
     console.log("goals --------------",result)
     res.status(200).json({ message: `${userId} todays  goals report`, result })
   } catch (err) {

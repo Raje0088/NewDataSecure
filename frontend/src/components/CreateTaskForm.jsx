@@ -250,7 +250,7 @@ const CreateTaskForm = () => {
           <span>
             <label>Please select task mode</label>
           </span>
-          <div className={taskMode !== "Bulk" && styles.fade}>
+          {/* <div className={taskMode !== "Bulk" && styles.fade}>
             <h4>
               {" "}
               <input
@@ -398,7 +398,7 @@ const CreateTaskForm = () => {
                 </div>
               </div>
             )}
-          </div>
+          </div> */}
           <div className={taskMode !== "Request" && styles.fade}>
             <h4>
               <input

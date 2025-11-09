@@ -190,11 +190,15 @@ const SearchClient = () => {
       setGetPresentPlace(result.data);
     };
     if (userPermissions.roleType === "Executive") {
+      const distFlatArray = userPermissions.masterData.area.flatMap((item, idx) =>
+        item.district.map((dist, j) => dist.districtName)
+      ).sort()
+      console.log("distFlatArray", distFlatArray);
       let obj = {};
-      obj.districtArray = userPermissions.masterData.district?.map(
-        (item) => item.name
+      obj.districtArray = distFlatArray
+      obj.stateArray = userPermissions.masterData.area.map(
+        (item, idx) => item.stateName
       );
-      obj.stateArray = userPermissions.masterData.state;
       obj.excelArray = userPermissions.masterData.excelId;
       obj.pincodeArray = userPermissions.masterData.pincode;
       setGetPresentPlace(obj);
@@ -335,7 +339,7 @@ const SearchClient = () => {
   const handleSearchData = async (pageNum = 1) => {
     if (!filterRaw.clientType) return alert("please select user");
     setIsLoading(true);
-    console.log("dskfdkddkddd")
+    console.log("dskfdkddkddd");
     try {
       let result;
       if (filterRaw.clientType === "ALL") {
@@ -2205,9 +2209,11 @@ const SearchClient = () => {
                           <input
                             type="checkbox"
                             className={styles["checkbox-input-table"]}
-                            disabled={!fetchedRawData?.result?.some((item,idx)=>(item.master_data_db.assignTo === userLoginId))
-                                &&
-                              userLoginId !== "SA"
+                            disabled={
+                              !fetchedRawData?.result?.some(
+                                (item, idx) =>
+                                  item.master_data_db.assignTo === userLoginId
+                              ) && userLoginId !== "SA"
                             }
                             checked={
                               selectedClients?.length ===

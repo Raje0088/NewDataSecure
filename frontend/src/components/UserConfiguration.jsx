@@ -12,6 +12,7 @@ import { RequestModalContext } from "../context-api/GlobalModalContext";
 import { useNavigate } from "react-router-dom";
 import { IoCloseSharp } from "react-icons/io5";
 import { AuthContext } from "../context-api/AuthContext";
+import { IoMdRemoveCircle } from "react-icons/io";
 
 const UserConfiguration = () => {
   const { userLoginId } = useContext(AuthContext);
@@ -34,6 +35,7 @@ const UserConfiguration = () => {
   const [excelData, setExcelData] = useState([]);
   const [selectedClients, setSelectedClients] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [assignAreaList, setAssignAreaList] = useState([]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -141,6 +143,18 @@ const UserConfiguration = () => {
 
       setViewExcelData(filterData);
       console.log("file", filterData);
+
+      // ===================== GET USER ASSIGN AREA =====================================
+      const data = await axios.get(`${base_url}/users/search-all-user`);
+      const userArea = data.data.result;
+      const area = userArea.filter(
+        (item) =>
+          item.generateUniqueId !== "SA" &&
+          item?.master_data_db?.area?.length > 0
+      );
+      console.log("filters", area);
+      setAssignAreaList(area);
+      console.log("user area", area);
     } catch (err) {
       console.log("internal error", err);
     }
@@ -195,12 +209,14 @@ const UserConfiguration = () => {
       console.log("internal error", err);
     }
   };
-  const handleAssignExcelSheet = async (tittle, excelId) => {
+  const handleAssignExcelSheet = async (title, excelId) => {
+    console.log("title, exec", title, excelId);
     try {
       const result = await axios.get(
         `http://localhost:3000/view-excel/assign-excel`,
         {
           params: {
+            title: title,
             excelId: excelId,
             assignTo: selectedUserId,
             assignBy: userLoginId,
@@ -215,6 +231,28 @@ const UserConfiguration = () => {
     }
   };
 
+  const handleRemoveArea = async (userId) => {
+    try {
+      const result = await axios.put(
+        `${base_url}/task/remove-assignarea/${userId}`
+      );
+      alert(result.data.message);
+    } catch (err) {
+      console.log("internal error", err);
+    }
+  };
+  const handleRemoveExcel = async (userId, dumpId) => {
+    console.log("userId and dumpId", userId, dumpId);
+    try {
+      const result = await axios.put(`${base_url}/task/remove-assignexcel`, {
+        userId: userId,
+        dumpId: dumpId,
+      });
+      alert(result.data.message);
+    } catch (err) {
+      console.log("internal error", err);
+    }
+  };
   return (
     <div className={styles.main}>
       <div className={styles.header}>
@@ -224,11 +262,12 @@ const UserConfiguration = () => {
               setSelectTaskTabOption("task");
             }}
             style={{
-              backgroundColor: selectTaskTabOption === "task" ? "hsl(241, 100%, 81%)" : "",
+              backgroundColor:
+                selectTaskTabOption === "task" ? "hsl(241, 100%, 81%)" : "",
               borderTopLeftRadius: "5px",
               borderBottomLeftRadius: "5px",
-              borderRight:"1px solid white",
-              fontWeight:selectTaskTabOption === "task" ? "600" : "500",
+              borderRight: "1px solid white",
+              fontWeight: selectTaskTabOption === "task" ? "600" : "500",
             }}
           >
             Task
@@ -239,9 +278,10 @@ const UserConfiguration = () => {
               handleExcelView("true");
             }}
             style={{
-              backgroundColor: selectTaskTabOption === "assign" ? "hsl(241, 100%, 81%)" : "",
-              borderRight:"1px solid white",
-              fontWeight:selectTaskTabOption === "assign" ? "600" : "500",
+              backgroundColor:
+                selectTaskTabOption === "assign" ? "hsl(241, 100%, 81%)" : "",
+              borderRight: "1px solid white",
+              fontWeight: selectTaskTabOption === "assign" ? "600" : "500",
             }}
           >
             Assigned
@@ -253,102 +293,106 @@ const UserConfiguration = () => {
             }}
             style={{
               backgroundColor:
-                selectTaskTabOption === "notassign" ? "hsl(241, 100%, 81%)" : "",
+                selectTaskTabOption === "notassign"
+                  ? "hsl(241, 100%, 81%)"
+                  : "",
               borderTopRightRadius: "5px",
               borderBottomRightRadius: "5px",
-              fontWeight:selectTaskTabOption === "notassign" ? "600" : "500",
+              fontWeight: selectTaskTabOption === "notassign" ? "600" : "500",
             }}
           >
-            Not Assigned 
+            Not Assigned
           </span>
         </div>
       </div>
-      <div className={styles.header}>
-        <span>
-          <label htmlFor="">User</label>
-          <select
-            name=""
-            id=""
-            value={filteredBy.userId}
-            onChange={(e) => {
-              handleChange("userId", e.target.value);
-            }}
-          >
-            <option value="">All</option>
-            {membersList.map((item, idx) => (
-              <option>{item.id}</option>
-            ))}
-          </select>
-        </span>
-        <span>
-          <label htmlFor="">Task Type</label>
-          <select
-            name=""
-            id=""
-            value={filteredBy.taskType}
-            onChange={(e) => {
-              handleChange("taskType", e.target.value);
-            }}
-          >
-            <option value="">All</option>
-            <option value="REMINDER">Remainder</option>
-            <option value="EXCEL">Excel</option>
-            <option value="">Bulk Data</option>
-          </select>
-        </span>
-        <span>
-          <label htmlFor="">Task Status</label>
-          <select
-            name=""
-            id=""
-            value={filteredBy.taskStatus}
-            onChange={(e) => {
-              handleChange("taskStatus", e.target.value);
-            }}
-          >
-            <option value="">All</option>
-            <option value="Completed">Completed</option>
-            <option value="Pending">Pending</option>
-          </select>
-        </span>
-        <span>
-          <label htmlFor="">Request</label>
-          <select
-            name=""
-            id=""
-            value={filteredBy.request}
-            onChange={(e) => {
-              handleChange("request", e.target.value);
-            }}
-          >
-            <option value="">All</option>
-            <option value="Accept">Accept</option>
-            <option value="Reject">Reject</option>
-            <option value="Pending">Pending</option>
-          </select>
-        </span>
+      {selectTaskTabOption === "task" && (
+        <div className={styles.header}>
+          <span>
+            <label htmlFor="">User</label>
+            <select
+              name=""
+              id=""
+              value={filteredBy.userId}
+              onChange={(e) => {
+                handleChange("userId", e.target.value);
+              }}
+            >
+              <option value="">All</option>
+              {membersList.map((item, idx) => (
+                <option>{item.id}</option>
+              ))}
+            </select>
+          </span>
+          <span>
+            <label htmlFor="">Task Type</label>
+            <select
+              name=""
+              id=""
+              value={filteredBy.taskType}
+              onChange={(e) => {
+                handleChange("taskType", e.target.value);
+              }}
+            >
+              <option value="">All</option>
+              <option value="REMINDER">Remainder</option>
+              <option value="EXCEL">Excel</option>
+              <option value="">Bulk Data</option>
+            </select>
+          </span>
+          <span>
+            <label htmlFor="">Task Status</label>
+            <select
+              name=""
+              id=""
+              value={filteredBy.taskStatus}
+              onChange={(e) => {
+                handleChange("taskStatus", e.target.value);
+              }}
+            >
+              <option value="">All</option>
+              <option value="Completed">Completed</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </span>
+          <span>
+            <label htmlFor="">Request</label>
+            <select
+              name=""
+              id=""
+              value={filteredBy.request}
+              onChange={(e) => {
+                handleChange("request", e.target.value);
+              }}
+            >
+              <option value="">All</option>
+              <option value="Accept">Accept</option>
+              <option value="Reject">Reject</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </span>
 
-        <span>
-          <label htmlFor="">From</label>
-          <input
-            type="date"
-            value={filteredBy.dateFrom}
-            onChange={(e) => {
-              handleChange("dateFrom", e.target.value);
-            }}
-          />
-        </span>
-        <span>
-          <label htmlFor="">To</label>
-          <input
-            type="date"
-            value={filteredBy.dateTo}
-            onChange={(e) => {
-              handleChange("dateTo", e.target.value);
-            }}
-          />
-        </span>
-      </div>
+          <span>
+            <label htmlFor="">From</label>
+            <input
+              type="date"
+              value={filteredBy.dateFrom}
+              onChange={(e) => {
+                handleChange("dateFrom", e.target.value);
+              }}
+            />
+          </span>
+          <span>
+            <label htmlFor="">To</label>
+            <input
+              type="date"
+              value={filteredBy.dateTo}
+              onChange={(e) => {
+                handleChange("dateTo", e.target.value);
+              }}
+            />
+          </span>
+        </div>
+      )}
       <div className={styles.btndiv}>
         <button
           onClick={() => {
@@ -358,7 +402,6 @@ const UserConfiguration = () => {
           Reset
         </button>
       </div>
-
       {selectTaskTabOption === "task" && (
         <div className={styles.tablediv}>
           {userConfigList?.length > 0 ? (
@@ -391,7 +434,12 @@ const UserConfiguration = () => {
                     </td>
                     <td>{item.assignBy_db}</td>
                     <td>{item.assignTo_db}</td>
-                    <td title={`${item.excelId_db?.title}`} style={{cursor:"pointer"}}>{item.taskType_db}</td>
+                    <td
+                      title={`${item.excelId_db?.title}`}
+                      style={{ cursor: "pointer" }}
+                    >
+                      {item.taskType_db}
+                    </td>
                     <td>{item.completed_db}</td>
                     <td>{item.total_task_db}</td>
                     <td className={styles.align}>
@@ -440,6 +488,9 @@ const UserConfiguration = () => {
       )}
       {selectTaskTabOption === "assign" && (
         <div className={styles.tablediv}>
+          <div>
+            <h4>Assign Excel Sheet</h4>
+          </div>
           {veiwExcelData.length > 0 ? (
             <table>
               <thead>
@@ -453,6 +504,7 @@ const UserConfiguration = () => {
                   <th>Excel Name</th>
                   <th>Total</th>
                   <th>View</th>
+                  <th>Remove </th>
                 </tr>
               </thead>
               <tbody>
@@ -468,13 +520,102 @@ const UserConfiguration = () => {
 
                     <td>{item.total_db}</td>
                     <td
-                     style={{textAlign:"center"}}
+                      style={{ textAlign: "center" }}
                       onClick={() => {
                         setShowExcelList(true);
                         showExcelData(item.dumpBy_db);
                       }}
                     >
                       <button className={styles.custombtn}>Show</button>
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <IoMdRemoveCircle
+                        onClick={() => {
+                          handleRemoveExcel(item.assignTo_db, item.dumpBy_db);
+                        }}
+                        className={styles.icon1}
+                      />{" "}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <h2 style={{ width: "100%", textAlign: "center" }}>
+              No Data Found
+            </h2>
+          )}
+          <div style={{ marginTop: "10px" }}>
+            <h4>Assign Area</h4>
+          </div>
+          {assignAreaList.length > 0 ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>Sr No</th>
+                  <th>User</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Area</th>
+                  <th>Remove</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assignAreaList.map((item, idx) => (
+                  <tr>
+                    <td>{idx + 1}</td>
+                    <td>{item.generateUniqueId}</td>
+                    <td>{item.updatedAt.split("T")[0]}</td>
+                    <td>{item.updatedAt.split("T")[1].split(".")[0]}</td>
+                    <td>
+                      {item.master_data_db.area.map((states) => (
+                        <tr>
+                          <td>
+                            <h4>
+                              {" "}
+                              {states.stateName} ({states.totalCnt})
+                            </h4>
+                          </td>
+                          <td>
+                            {states.district.map((dist, j) => (
+                              <span style={{ display: "flex" }}>
+                                <strong
+                                  style={{
+                                    background: [
+                                      "MUMBAI",
+                                      "KOLKATA",
+                                      "CHENNAI",
+                                      "DELHI",
+                                    ].includes(dist.districtName)
+                                      ? "yellow"
+                                      : "",
+                                  }}
+                                >
+                                  {dist.districtName}({dist.totalDistCnt})
+                                </strong>
+                                <span>
+                                  {" — "}
+                                  {dist.pincodes.length > 0 &&
+                                    dist.pincodes.map((pin, k) => (
+                                      <span>
+                                        {pin.code}{" "}
+                                        {k < dist.pincodes.length - 1 && ", "}
+                                      </span>
+                                    ))}
+                                </span>
+                              </span>
+                            ))}
+                          </td>
+                        </tr>
+                      ))}
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <IoMdRemoveCircle
+                        onClick={() => {
+                          handleRemoveArea(item.generateUniqueId);
+                        }}
+                        className={styles.icon1}
+                      />{" "}
                     </td>
                   </tr>
                 ))}
@@ -489,6 +630,9 @@ const UserConfiguration = () => {
       )}
       {selectTaskTabOption === "notassign" && (
         <div className={styles.tablediv}>
+          <div>
+            <h4>Excel Sheet</h4>
+          </div>
           {veiwExcelData.length > 0 ? (
             <table>
               <thead>
@@ -521,17 +665,46 @@ const UserConfiguration = () => {
                         ))}
                       </select>
                     </td>
-                    <td
-                    style={{textAlign:"center"}}
-                      onClick={() => {
-                        handleAssignExcelSheet(
-                          item.excel_title_db,
-                          item.dumpBy_db
-                        );
-                      }}
-                    >
-                      <button className={styles.custombtn}>Send</button>
+                    <td style={{ textAlign: "center" }}>
+                      <button
+                        onClick={() => {
+                          handleAssignExcelSheet(
+                            item.excel_title_db,
+                            item.dumpBy_db
+                          );
+                        }}
+                        className={styles.custombtn}
+                      >
+                        Send
+                      </button>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <h2 style={{ width: "100%", textAlign: "center" }}>
+              No Data Found
+            </h2>
+          )}
+          <div style={{ marginTop: "10px" }}>
+            <h4>UnAssign Area</h4>
+          </div>
+          {assignAreaList.length > 0 ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>Sr No</th>
+                  <th>State</th>
+                  <th>District</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assignAreaList.map((item, idx) => (
+                  <tr>
+                    <td>{idx + 1}</td>
+                    <td>Sttate</td>
+                    <td>District</td>
                   </tr>
                 ))}
               </tbody>
@@ -543,6 +716,7 @@ const UserConfiguration = () => {
           )}
         </div>
       )}
+      {/* POP UP SHOW ASSIGN EXCEL SHEET DATA */}
       {showExcelList && (
         <div className={styles.popupdiv}>
           <div className={styles.popupinner}>
@@ -550,7 +724,7 @@ const UserConfiguration = () => {
               className={styles["align-end"]}
               onClick={() => {
                 setShowExcelList(false);
-                setExcelData([])
+                setExcelData([]);
               }}
             >
               <IoCloseSharp

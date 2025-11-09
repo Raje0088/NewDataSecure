@@ -56,7 +56,7 @@ const createClient = async (req, res) => {
             product, stage, quotationShare, database,
             expectedDate, remarks, label, completion,
             followUpDate, verifiedBy, tracker, amountDetails, action, followUpTime } = req.body;
-            console.log("we are in client",state,district)
+        console.log("we are in client", state, district)
         // console.log("req body", amountDetails)
         const bussiness1 = bussinessNames[0]?.value || "";
         const bussiness2 = bussinessNames[1]?.value || "";
@@ -84,12 +84,21 @@ const createClient = async (req, res) => {
         }
 
         // console.log("tracking -------------->", tracker)
-        
-        const user = await UserModel.findOne({ "master_data_db.district.name": { $in: [district] }, "master_data_db.state": { $in: [state] } })
-        if(!user){
-            console.log("no matching fuound",district,state)
-        }else{
-            console.log("dfasdfdklfjkl",user)
+
+
+        //THIS HELP TO FIND TO WHOM THAT DATA ASSIGN 
+        const user = await UserModel.findOne({
+            "master_data_db.area": {
+                $elemMatch: {
+                    "stateName": state,
+                    "district.districtName": district,
+                }
+            }
+        })
+        if (!user) {
+            console.log("no matching fuound", district, state)
+        } else {
+            console.log("dfasdfdklfjkl", user)
         }
 
         const result = await clientModel.create({
@@ -139,7 +148,7 @@ const createClient = async (req, res) => {
             label_db: label,
             completion_db: completion,
             amountDetails_db: amountDetails,
-           "master_data_db.assignTo": user.generateUniqueId,
+            "master_data_db.assignTo": user?.generateUniqueId,
         })
 
         getNextGobalCounterSequence("rawSerialNumber")

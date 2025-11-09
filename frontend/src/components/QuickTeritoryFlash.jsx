@@ -15,6 +15,7 @@ const QuickTeritoryFlash = ({ isOpen, onClose }) => {
   const [taskList, setTaskList] = useState([]);
   const [userAssignTask, setUserAssignTask] = useState([]);
   const [goals, setGoals] = useState([]);
+  const [mergeTask, setMergeTask] = useState([]);
 
   useEffect(() => {
     const fetch = async () => {
@@ -31,6 +32,7 @@ const QuickTeritoryFlash = ({ isOpen, onClose }) => {
           `${base_url}/users/search-by-user/${userLoginId}`
         );
         const region = user.data.result;
+        console.log("region", region);
 
         const task = await axios.get(
           `${base_url}/task/get-assign-task/${userLoginId}`,
@@ -49,11 +51,61 @@ const QuickTeritoryFlash = ({ isOpen, onClose }) => {
         const goals = await axios.get(
           `${base_url}/schedule/get-goals/${userLoginId}`
         );
-        console.log("goals===================", goals.data.result);
-        setGoals(goals.data.result.goals_db);
 
-        console.log("task", task.data);
+        const userProgressData = await axios.get(
+          `${base_url}/progress/get-admintask/${userLoginId}`
+        );
+        console.log("userProgress", userProgressData.data.result);
+
+        const taskFieldMap = {
+          "New Calls": "new_calls_db",
+          "New Data": "new_data_db",
+          Leads: "lead_db",
+          Demo: "demo_db",
+          Installation: "installation_db",
+          Training: "training_db",
+          Target: "target_db",
+          Recovery: "recovery_db",
+          Support: "support_db",
+          "Follow Up": "followUp_db",
+        };
+
+        const mergedTasks =
+          userForm?.task_product_matrix_db?.map((task) => {
+            const dbKey = taskFieldMap[task.taskTitle];
+            if (!dbKey) return task;
+
+            const mergedProducts = task.products.map((prod) => {
+              const progressDoc = userProgressData.data.result.find(
+                (p) => p.product_db === prod.productTitle
+              );
+
+              let completed = 0;
+              if (progressDoc && progressDoc[dbKey]) {
+                completed = progressDoc[dbKey].completed || 0;
+              }
+
+              return {
+                ...prod,
+                completed,
+              };
+            });
+
+            return {
+              ...task,
+              products: mergedProducts,
+            };
+          }) || [];
+
+        setUserAssignTask({ ...userForm, task_product_matrix_db: mergedTasks });
+        // console.log("mergedTask ===================", mergedTasks);
+
+        // console.log("goals===================", goals.data.result);
+        setGoals(goals.data.result?.goals_db);
+        
+        // console.log("task", task.data);
         setTaskList(task.data.result);
+        console.log("Region======87=============", region.master_data_db);
         setAreaList(region.master_data_db);
         setReminderList(result.data.result);
       } catch (err) {
@@ -64,11 +116,11 @@ const QuickTeritoryFlash = ({ isOpen, onClose }) => {
   }, [userLoginId]);
 
   let goalsMap = new Map([
-    ["New Data Add", "new_data_add_db"],
-    ["No of New Calls", "no_of_new_calls_db"],
-    ["Leads", "leads_db"],
+    ["New Data", "new_data_db"],
+    ["New Calls", "new_calls_db"],
+    ["Leads", "lead_db"],
     ["Demo", "demo_db"],
-    ["Follow Up", "follow_up_db"],
+    ["Follow Up", "followUp_db"],
     ["Target", "target_db"],
     ["Training", "training_db"],
     ["Installation", "installation_db"],
@@ -82,23 +134,23 @@ const QuickTeritoryFlash = ({ isOpen, onClose }) => {
   );
 
   const productTitles =
-    userAssignTask.task_product_matrix_db?.[0].products?.map(
+    userAssignTask?.task_product_matrix_db?.[0].products?.map(
       (p) => p.productTitle
     );
 
-  const products = Object.keys(goals);
+  const products = Object.keys(goals || {}) 
 
   // Collect all unique task names (demo_db, installation_db, etc.)
   const allTasks = Array.from(
     new Set(products.flatMap((prod) => Object.keys(goals[prod])))
   );
   //  if (!goals || goals.length === 0) return <p>No data available</p>;
-  return ReactDOM.createPortal(
+  return (
     <div className={styles.main}>
       <div className={styles.overlay}>
-        <div className={styles.closebtn}>
+        {/* <div className={styles.closebtn}>
           <MdClose onClick={onClose} className="icon-size" />
-        </div>
+        </div> */}
         <div className={styles.heading}>
           <h4>Quick Overview</h4>
         </div>
@@ -159,10 +211,31 @@ const QuickTeritoryFlash = ({ isOpen, onClose }) => {
                               // padding: "10px 14px",
                               textAlign: "center",
                               color: "#1E3A8A",
-                              fontWeight: "500",
+                              fontWeight: "600",
                             }}
                           >
-                            {data ? data.assigned_db : "-"}
+                            {data ? (
+                              // ? `${data.completed_db} - ${data.assigned_db}`
+                              <span
+                                style={{
+                                  display: "flex",
+                                  gap: "5px",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                {" "}
+                                <p style={{ color: "black" }}>
+                                  {data.completed_db}
+                                </p>{" "}
+                                -{" "}
+                                <p style={{ color: "red" }}>
+                                  {data.assigned_db}
+                                </p>
+                              </span>
+                            ) : (
+                              "-"
+                            )}
                           </td>
                         );
                       })}
@@ -192,7 +265,7 @@ const QuickTeritoryFlash = ({ isOpen, onClose }) => {
               <table style={{ fontSize: "12px" }}>
                 <thead>
                   <tr style={{ fontSize: "12px" }}>
-                    <th style={{ fontSize: "12px" }}>Task ↓ / Product →</th>
+                    <th style={{ fontSize: "12px" }}>Task ↓ / Product </th>
                     {productTitles?.map((prod, i) => (
                       <th key={i} style={{ fontSize: "12px" }}>
                         {prod}
@@ -230,10 +303,27 @@ const QuickTeritoryFlash = ({ isOpen, onClose }) => {
                               // padding: "10px 14px",
                               textAlign: "center",
                               color: "#1E3A8A",
-                              fontWeight: "500",
+                              fontWeight: "600",
                             }}
                           >
-                            {product ? product.num : 0}
+                            {product ? (
+                              <span
+                                style={{
+                                  display: "flex",
+                                  gap: "5px",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                {" "}
+                                <p style={{ color: "black" }}>
+                                  {product.completed || 0}
+                                </p>{" "}
+                                - <p style={{ color: "red" }}>{product.num}</p>
+                              </span>
+                            ) : (
+                              0
+                            )}
                           </td>
                         );
                       })}
@@ -244,44 +334,151 @@ const QuickTeritoryFlash = ({ isOpen, onClose }) => {
             </div>
           </div>
           <div className={styles.contentdown}>
-            <div style={{ width: "50%", padding: "5px" }}>
+            <div style={{ width: "100%", padding: "5px" }}>
+              {/* ========================================================== */}
+
               <div className={styles.regiondiv}>
                 <div>
-                  <h4
+                  <h2
                     style={{
                       textAlign: "center",
-                      color: "#1E3A8A",
-                      fontSize: "14px",
-                      paddingBottom: "5px",
+                      color: "white",
+                        paddingBottom: "5px",
                     }}
                   >
                     Region
-                  </h4>
+                  </h2>
                 </div>
-                <div className={styles.region}>
-                  <strong>State</strong>
-                  <strong>District</strong>
-                </div>
-                {areaList?.state?.map((state, i) => (
-                  <div key={i} className={styles.region}>
-                    <div>{state}</div>
-                    <div className={styles.districtCell}>
-                     { areaList?.district?.map((item, j) => (
-                      <span>
-                        {item.name}{" "}
-                        <sup className={styles.distnotify}>{item.total}</sup>,
-                      </span>
-                      ))}
-                    </div>
+                <div className={styles.regionWrapper}>
+                  <div className={styles.innerWrapper}>
+                    <h3 className={styles.stateCellWrapper}>State</h3>
+                    <h3 className={styles.districtCellWrapper}>District</h3>
                   </div>
-                ))}
+                  <div className={styles.innerWrapper}>
+                    <h3 className={styles.stateCellWrapper}>State</h3>
+                    <h3 className={styles.districtCellWrapper}>District</h3>
+                  </div>
+                  {areaList?.area?.map((state, i) => (
+                    <div key={i} className={styles.innerWrapper}>
+                      <span className={styles.stateCellWrapper}>
+                        {state.stateName}{" "}
+                        <sup className={styles.distnotify}>
+                          {state.totalCnt}
+                        </sup>
+                      </span>
+                      <span className={styles.districtCellWrapper}>
+                        <div className={styles.districtCell}>
+                          {state?.district?.slice(0, 10)?.map((item, j) => (
+                            <span key={j} className={styles.districtItem}>
+                              {item.districtName}
+                              <sup className={styles.distnotify}>
+                                {item.totalDistCnt}
+                              </sup>
+                              {" ,  "}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div className={styles.distbox}>
+                          {state?.district?.map((dist, k) => (
+                            <span key={k} className={styles.distboxItem}>
+                              {dist.districtName}
+                              <sup className={styles.distnotify}>
+                                {dist.totalDistCnt}
+                              </sup>
+                              {", "}
+                            </span>
+                          ))}
+                        </div>
+                      </span>
+                    </div>
+                  ))}
+                  {/* <table>
+
+                    <tbody>
+                  {areaList?.area?.map((state, i) => (
+                    <tr key={i} className={styles.region}>
+                      <td>
+                        {state.stateName}{" "}
+                        <sup className={styles.distnotify}>
+                          {state.totalCnt}
+                        </sup>
+                      </td>
+                      <td className={styles.districtCellWrapper}>
+                        <div className={styles.districtCell}>
+                          {state?.district?.map((item, j) => (
+                            <span key={j} className={styles.districtItem}>
+                              {item.districtName}
+                              <sup className={styles.distnotify}>
+                                {item.totalDistCnt}
+                              </sup>
+                              {" ,  "}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div className={styles.distbox}>
+                          {state?.district?.map((dist, k) => (
+                            <span key={k}>
+                              {dist.districtName}
+                              <sup className={styles.distnotify}>
+                                {dist.totalDistCnt}
+                              </sup>
+                              {", "}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                    </tbody>
+                  </table> */}
+                  {/* <div className={styles.region}>
+                    <strong>State</strong>
+                    <strong>District</strong>
+                  </div>
+                  {areaList?.area?.map((state, i) => (
+                    <div key={i} className={styles.region}>
+                      <div>
+                        {state.stateName}{" "}
+                        <sup className={styles.distnotify}>
+                          {state.totalCnt}
+                        </sup>
+                      </div>
+                      <div className={styles.districtCellWrapper}>
+                        <div className={styles.districtCell}>
+                          {state?.district?.map((item, j) => (
+                            <span key={j} className={styles.districtItem}>
+                              {item.districtName}
+                              <sup className={styles.distnotify}>
+                                {item.totalDistCnt}
+                              </sup>
+                              {" ,  "}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div className={styles.distbox}>
+                          {state?.district?.map((dist, k) => (
+                            <span key={k}>
+                              {dist.districtName}
+                              <sup className={styles.distnotify}>
+                                {dist.totalDistCnt}
+                              </sup>
+                              {", "}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))} */}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>,
-    document.getElementById("extra-request-portal")
+    </div>
   );
 };
 

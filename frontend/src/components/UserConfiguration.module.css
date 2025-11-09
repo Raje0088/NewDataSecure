@@ -53,6 +53,15 @@
   stroke: black;
   
 }
+.icon1{
+  font-size: 22px;
+  cursor: pointer;
+  color:blue;
+  stroke-width: 10;
+}
+.icon1:hover{
+  color:red;
+}
 .assigndiv{
   width:auto;
   display:flex;
@@ -99,6 +108,9 @@
   height: 100%;
   overflow: auto;
   color:black;
+  display:flex;
+  flex-direction: column;
+  gap:5px;
 }
 .custombtn {
   width: 60px;

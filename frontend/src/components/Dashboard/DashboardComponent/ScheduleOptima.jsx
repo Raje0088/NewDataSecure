@@ -27,11 +27,11 @@ const ScheduleOptima = (props) => {
   const [getSelectedTime, setGetSelectedTime] = useState("");
   const [selectDate, setSelectDate] = useState("");
   const taskKeyMap = {
-    "New Data Add": "new_data_add_db",
-    "No of New Calls": "no_of_new_calls_db",
-    Leads: "leads_db",
+    "New Data Add": "new_data_db",
+    "No of New Calls": "new_calls_db",
+    Leads: "lead_db",
     Demo: "demo_db",
-    "Follow Up": "follow_up_db",
+    "Follow Up": "followUp_db",
     Target: "target_db",
     Training: "training_db",
     Installation: "installation_db",
@@ -61,6 +61,9 @@ const ScheduleOptima = (props) => {
         const result = await axios.get(
           `${base_url}/schedule/get-goals/${userLoginId}`
         );
+        
+        setSelectDate(result.data.result.date_todo_db)
+        setGetSelectedTime(result.data.result.deadline_db)
         console.log("goals", result.data.result.goals_db);
         setShowProgress(result.data.result.goals_db);
       }
@@ -201,7 +204,7 @@ const ScheduleOptima = (props) => {
       <div className={styles.setterdiv}>
         <h4>Set Deadline:</h4>
         <span style={{ width: "auto" }}>
-          <TimePickerComponent onTimeChange={handleTimeChange} />
+      {showProgressMode  ? ` ${getSelectedTime}` :   <TimePickerComponent onTimeChange={handleTimeChange} />}
         </span>
       </div>
 

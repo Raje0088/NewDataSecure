@@ -8,16 +8,16 @@ const goalsSchema = new mongoose.Schema({
 
 
 const productTaskSchema = new mongoose.Schema({
-  no_of_new_calls_db: goalsSchema,
-  new_data_add_db: goalsSchema,
-  leads_db: goalsSchema,
+  new_calls_db: goalsSchema,
+  new_data_db: goalsSchema,
+  lead_db: goalsSchema,
   demo_db: goalsSchema,
   installation_db: goalsSchema,
   training_db: goalsSchema,
   target_db: goalsSchema,
   recovery_db: goalsSchema,
   support_db: goalsSchema,
-  follow_up_db: goalsSchema,
+  followUp_db: goalsSchema,
 }, { _id: false });
 
 const scheduleOptimaSchema = new mongoose.Schema({

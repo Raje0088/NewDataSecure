@@ -521,3 +521,12 @@ tr:nth-child(odd) {
     text-wrap: nowrap;
   }
 }
+.tablediv{
+  width:100%; 
+  height: 100%;
+  overflow: auto;
+  color:black;
+  display:flex;
+  flex-direction: column;
+  gap:5px;
+}

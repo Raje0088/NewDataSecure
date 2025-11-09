@@ -1,19 +1,14 @@
 .main {
   width: 100%;
   height: 100%;
-  position: fixed;
-  left: 0;
-  top: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.33);
 }
 
 .overlay {
-  width: 90%;
-  background-color: rgb(255, 255, 255);
-  height: 90%;
+  width: 100%;
+  height: 100%;
   padding: 10px;
   position: relative;
   border-radius: 10px;
@@ -68,23 +63,22 @@
   width: 100%;
   height: 100%;
   box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.2);
-  background: #b5ffff;
+  /* background: #b5ffff; */
+  background: #8e4cc0;
   padding: 5px;
   font-size: 12px;
   border-radius: 10px;
 }
+
 .region {
   width: 100%;
   display: grid;
   grid-template-columns: 40% 60%;
   gap: 2px;
   font-size: 14px;
-  padding: 5px;
-}
-.regiontable td {
-  font-size: 12px;
   padding: 2px;
 }
+
 .distnotify {
   /* position: absolute;
   top: -10px;
@@ -100,12 +94,93 @@
 .districtRow {
   display: flex;
   flex-wrap: wrap; /* keeps inline but wraps if too long */
-  gap: 8px; /* space between districts */
   align-items: center;
 }
-.districtCell {
-  display: inline-flex;
-  align-items: center;
+.stateCellWrapper {
+  border-right:2px solid red ;
+  width:100%;
+  display: inline-block; 
   white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.districtCellWrapper {
+  position: relative;
+  min-width: 100%;
+  padding-left: 5px;
+}
+
+/* Each state’s cell */
+.districtCell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  cursor: pointer;
+}
+
+/* Each district name (hover trigger) */
+.districtItem {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+/* Hidden popup by default */
+.distbox {
+  display: none;
+  position: absolute;
+  bottom: 100%; /* show below district */
+  left: 0;
+  transform: translateY(5px);
+  background: #fff;
+  border: 2px solid #003cff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(9, 61, 247, 0.15);
+  padding: 8px;
+  max-width: 300px;
+  z-index: 9999;
+  animation: popupFade 0.2s ease;
+}
+/* Show popup on hover */
+.districtCellWrapper:hover .distbox {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 2px;
+  background-color: rgb(225, 225, 255);
+  
+}
+/* Fade-in animation */
+@keyframes popupFade {
+  from {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(5px);
+  }
+}
+
+.regionWrapper {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  /* background-color: red; */
+  border: 1px solid gray;
+}
+.innerWrapper {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 30% 70%;
+  background: white;
+  
+  padding:5px;
+}
+.distboxItem{
+  border: 1px solid black;
+  padding:2px;
+  background-color: white;
+  font-weight: 600;
 }

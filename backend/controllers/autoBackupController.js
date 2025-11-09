@@ -14,6 +14,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 
+
 const creatAutoBackupEmails = async (req, res) => {
     try {
         const { email, userId = "SA", senderEmail, password } = req.body;
@@ -41,7 +42,7 @@ const creatAutoBackupEmails = async (req, res) => {
                     userId_db: userId
                 }
             )
-        }
+        } 
         console.log("email successfully loaded")
         res.status(200).json({ message: "email successfully loaded" })
     } catch (err) {
@@ -202,6 +203,8 @@ const getAutoBackupEmails = async (req, res) => {
 //     }
 
 // }
+
+
 
 const takeBackup = async (req, res) => {
     try {

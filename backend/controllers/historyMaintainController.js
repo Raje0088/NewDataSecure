@@ -1,8 +1,10 @@
+
 const { clientHistoryModel } = require("../models/historyModel")
 const { clientModel } = require("../models/clientModel")
 const { clientSubscriptionModel } = require("../models/clientSubscriptionModel")
 const { getNextGobalCounterSequence } = require("../utils/getNextSequence")
-
+const { userProgressSummaryModel } = require("../models/userProgressSummaryModel")
+const { scheduleOptimaModel } = require("../models/ScheduleOptima")
 
 const createHistory = async (req, res) => {
     try {
@@ -12,7 +14,7 @@ const createHistory = async (req, res) => {
             addresses, pincode, district,
             state, assignBy, assignTo,
             product, stage, quotationShare,
-            expectedDate, remarks,label,completion,
+            expectedDate, remarks, label, completion,
             followUpDate, verifiedBy, action, followUpTime, database, tracker, amountDetails, amountHistory, isUserPage = false } = req.body;
         // console.log("tracker in history", tracker);
         // console.log("product ->", product);
@@ -142,19 +144,111 @@ const createHistory = async (req, res) => {
             action_db: action,
             database_status_db: database,
             tracking_db: updatedTracker,
-            label_db:label,
-            completion_db:completion,
+            label_db: label,
+            completion_db: completion,
             amountDetails_db: amountDetails,
             amountHistory_db: updatedAmountHistory,
             isSubscriber_db: isFirstTimeInstallation ? true : false,
         })
         // console.log("Client History save Successfully", result)
         res.status(201).json({ message: "Client History save Successfully", result })
+
+        yo(result)
+        goalSchedule(result)
+
     } catch (err) {
         console.log("internal error", err)
         res.status(500).json({ message: "internal error in create client", err: err.message })
     }
 }
+
+const yo = async (result) => {
+    try {
+
+        const PROGRESS_MAPPING = {
+            demo_db: "demo_db",
+            new_data_db: "new_data_db",
+            recovery_db: "recovery_db",
+            training_db: "training_db",
+            follow_up_db: "followUp_db",
+            installation_db: "installation_db",
+            support_db: "support_db",
+            target_db: "target_db",
+            leads_db: "lead_db",
+            no_of_new_calls_db: "new_calls_db"
+        };
+
+        const userId = result.userId_db
+        const date = result.date_db
+        const productArray = result.product_db.map((item) => (item.label)) || []
+        const tracking = result.tracking_db
+
+        for (const prod of productArray) {
+            for (const [key, mappedKey] of Object.entries(PROGRESS_MAPPING)) {
+                const trackingField = tracking[key]
+                if (trackingField && trackingField.completed === true) {
+                    const updateQuery = { $inc: {} };
+
+                    updateQuery.$inc[`${mappedKey}.completed`] = 1
+
+                    await userProgressSummaryModel.updateOne({ userId_db: userId, date_db: date, product_db: prod },
+                        updateQuery,
+                        { upsert: true }
+                    )
+                    console.log(`✅ Progress updated for ${userId} → ${mappedKey} (${prod})`);
+                }
+            }
+        }
+    } catch (err) {
+        console.log("internal error in userProgress function", err)
+    }
+
+}
+const goalSchedule = async (result) => {
+    try {
+
+        const PROGRESS_MAPPING = {
+            demo_db: "demo_db",
+            new_data_db: "new_data_db",
+            recovery_db: "recovery_db",
+            training_db: "training_db",
+            follow_up_db: "followUp_db",
+            installation_db: "installation_db",
+            support_db: "support_db",
+            target_db: "target_db",
+            leads_db: "lead_db",
+            no_of_new_calls_db: "new_calls_db"
+        };
+
+        const userId = result.userId_db
+        const date = result.date_db
+        const productArray = result.product_db.map((item) => (item.label)) || []
+        const tracking = result.tracking_db
+ 
+        for (const prod of productArray) {
+            for (const [key, mappedKey] of Object.entries(PROGRESS_MAPPING)) {
+                const trackingField = tracking[key]
+                if (trackingField && trackingField.completed === true) {
+                    const updateQuery = { $inc: {} };
+
+                    updateQuery.$inc[`goals_db.${prod}.${mappedKey}.completed_db`] = 1
+                    console.log("updatequery",updateQuery)
+                    await scheduleOptimaModel.updateOne({ userId_db: userId, date_todo_db: date },
+                        updateQuery,
+                        { upsert: true }
+                    )
+                    console.log(`✅ Progress updated for ${userId} → ${mappedKey} (${prod})`);
+                }
+            }
+        }
+    } catch (err) {
+        console.log("internal error in userProgress function", err)
+    }
+
+}
+
+
+
 
 const getHistory = async (req, res) => {
     try {

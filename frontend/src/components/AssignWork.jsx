@@ -22,9 +22,11 @@ const AssignWork = ({ taskList, setTaskList }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectTaskTabOption, setSelectTaskTabOption] = useState("task");
   const [showExcelList, setShowExcelList] = useState(false);
-    const [veiwExcelData, setViewExcelData] = useState([]);
-      const [selectedClients, setSelectedClients] = useState([]);
-      const [excelData, setExcelData] = useState([]);
+  const [veiwExcelData, setViewExcelData] = useState([]);
+  const [selectedClients, setSelectedClients] = useState([]);
+  const [excelData, setExcelData] = useState([]);
+  const [assignDataList, setAssignDataList] = useState([]);
+
   const [filteredBy, setFilteredBy] = useState({
     taskStatus: "Pending",
     request: "",
@@ -104,59 +106,35 @@ const AssignWork = ({ taskList, setTaskList }) => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
   };
-    const handleExcelView = async (value) => {
+  const handleExcelView = async (value) => {
     try {
-      const result = await axios.get(`${base_url}/view-excel/get-allexcel`, {
-        params: { assign: value, },
-      });
-      const excelData = result.data.result;
-      let filterData = [...excelData];
-      console.log("before",filterData)
-      if (userLoginId !== "SA") {
-        filterData = filterData.filter(
-          (item) => item.assignTo_db === userLoginId
-        );
-      }
-      console.log("after",filterData)
-      if (filteredBy.userId) {
-        filterData = filterData.filter(
-          (item) => item.userId_db === filteredBy.userId
-        );
-      }
-      if (filteredBy.fromDate) {
-        const fromDatee = dateFormat(filteredBy.fromDate);
-        console.log("Yo", fromDatee);
-        filterData = filterData.filter((item) => item.date_db >= fromDatee);
-      }
-      if (filteredBy.toDate) {
-        const toDatee = dateFormat(filteredBy.toDate);
-        console.log(toDatee);
-        filterData = filterData.filter((item) => item.date_db <= toDatee);
-      }
-
-      setViewExcelData(filterData);
-      console.log("file", filterData);
+      const result = await axios.get(
+        `${base_url}/users/search-by-user/${userLoginId}`
+      );
+      const data = result.data.result?.master_data_db;
+      console.log("area", data);
+      setAssignDataList(data);
     } catch (err) {
       console.log("internal error", err);
     }
   };
-    const showExcelData = async (DumpId) => {
-      // setIsLoading(true);
-      console.log("dumpe", DumpId);
-      try {
-        const result = await axios.get(
-          `${base_url}/raw-data/excel-data/${DumpId}`
-        );
-  
-        console.log("jsonData", result.data);
-        setExcelData(result.data.result);
-      } catch (err) {
-        console.log("internal error", err);
-      }
-      // setIsLoading(false);
-    };
+  const showExcelData = async (DumpId) => {
+    // setIsLoading(true);
+    console.log("dumpe", DumpId);
+    try {
+      const result = await axios.get(
+        `${base_url}/raw-data/excel-data/${DumpId}`
+      );
 
-      const handleViewExcelSelectAll = () => {
+      console.log("jsonData", result.data);
+      setExcelData(result.data.result);
+    } catch (err) {
+      console.log("internal error", err);
+    }
+    // setIsLoading(false);
+  };
+
+  const handleViewExcelSelectAll = () => {
     if (selectedClients.length === excelData?.length) {
       setSelectedClients([]);
     } else {
@@ -175,7 +153,7 @@ const AssignWork = ({ taskList, setTaskList }) => {
     console.log("selectedClient", selectedClients);
   };
 
-    const handleRedirectClient = () => {
+  const handleRedirectClient = () => {
     try {
       if (selectedClients.length === 0) {
         return alert("Please select at least one client");
@@ -434,41 +412,94 @@ const AssignWork = ({ taskList, setTaskList }) => {
         )}
         {selectTaskTabOption === "assign" && (
           <div className={styles.tablediv}>
-            {veiwExcelData.length > 0 ? (
+            <div>
+              <h4>Assign Excel Sheet</h4>
+            </div>
+            {assignDataList?.excelId?.title !== "NA" ? (
               <table>
                 <thead>
                   <tr>
                     <th>Sr No</th>
-                    <th>Upload By</th>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Assign To</th>
-                    <th>Assign By</th>
                     <th>Excel Name</th>
-                    <th>Total</th>
+                    <th>Excel Title</th>
                     <th>View</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {veiwExcelData.map((item, idx) => (
-                    <tr>
-                      <td>{idx + 1}</td>
-                      <td>{item.userId_db}</td>
-                      <td>{item.updatedAt.split("T")[0]}</td>
-                      <td>{item.updatedAt.split("T")[1].split(".")[0]}</td>
-                      <td>{item.assignTo_db}</td>
-                      <td>{item.assignBy_db}</td>
-                      <td>{item.excel_title_db}</td>
-
-                      <td>{item.total_db}</td>
-                      <td
-                        style={{ textAlign: "center" }}
+                  <tr>
+                    <td>{1}</td>
+                    <td>{assignDataList?.excelId?.title}</td>
+                    <td>{assignDataList?.excelId?.excelId}</td>
+                    <td style={{ textAlign: "center" }}>
+                      <button
                         onClick={() => {
                           setShowExcelList(true);
-                          showExcelData(item.dumpBy_db);
+                          showExcelData(assignDataList?.excelId?.excelId);
                         }}
+                        className={styles.custombtn}
                       >
-                        <button  className={styles.custombtn1}>Show</button>
+                        Show
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
+              <h2 style={{ width: "100%", textAlign: "center" }}>
+                No Data Found
+              </h2>
+            )}
+            <div style={{ marginTop: "10px" }}>
+              <h4>Assign Area</h4>
+            </div>
+            {assignDataList.area?.length > 0 ? (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Sr No</th>
+                    <th>User</th>
+                    <th>Area</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {assignDataList.area?.map((states, idx) => (
+                    <tr>
+                      <td>{idx + 1}</td>
+                      <td>
+                        <h4>
+                          {" "}
+                          {states.stateName} ({states.totalCnt})
+                        </h4>
+                      </td>
+                      <td>
+                        {states.district.map((dist, j) => (
+                          <span style={{ display: "flex" }}>
+                            <strong
+                              style={{
+                                background: [
+                                  "MUMBAI",
+                                  "KOLKATA",
+                                  "CHENNAI",
+                                  "DELHI",
+                                ].includes(dist.districtName)
+                                  ? "yellow"
+                                  : "",
+                              }}
+                            >
+                              {dist.districtName}({dist.totalDistCnt})
+                            </strong>
+                            <span>
+                              {" — "}
+                              {dist.pincodes.length > 0 &&
+                                dist.pincodes.map((pin, k) => (
+                                  <span>
+                                    {pin.code}{" "}
+                                    {k < dist.pincodes.length - 1 && ", "}
+                                  </span>
+                                ))}
+                            </span>
+                          </span>
+                        ))}
                       </td>
                     </tr>
                   ))}
@@ -488,156 +519,131 @@ const AssignWork = ({ taskList, setTaskList }) => {
           />
         )}
       </div>
-            {showExcelList && (
-              <div className={styles.popupdiv}>
-                <div className={styles.popupinner}>
-                  <div
-                    className={styles["align-end"]}
-                    onClick={() => {
-                      setShowExcelList(false);
-                    }}
-                  >
-                    <IoCloseSharp
-                      style={{ width: "30px", height: "30px", color: "red" }}
-                    />
-                  </div>
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      padding: "20px 10px",
-                      color: "red",
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      flexDirection: "column",
-                      gap: "10px",
-                    }}
-                  >
-                    {excelData?.length > 0 && (
-                      <div className={styles.tablediv}>
-                        <div>
-                          {/* <div className={styles.pagebtn}>
-                            <button
-                              disabled={page === 1}
-                              onClick={() => {
-                                handleSearchData(page - 1);
-                              }}
-                            >
-                              Prev
-                            </button>
-                            <span>
-                              {" "}
-                              {page} of {totalPageSize}
+      {showExcelList && (
+        <div className={styles.popupdiv}>
+          <div className={styles.popupinner}>
+            <div
+              className={styles["align-end"]}
+              onClick={() => {
+                setShowExcelList(false);
+              }}
+            >
+              <IoCloseSharp
+                style={{ width: "30px", height: "30px", color: "red" }}
+              />
+            </div>
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                padding: "20px 10px",
+                color: "red",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                flexDirection: "column",
+                gap: "10px",
+              }}
+            >
+              {excelData?.length > 0 && (
+                <div className={styles.tablediv}>
+                  <div className={styles["table-content"]}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>
+                            <span id={styles.selectAll}>
+                              <input
+                                type="checkbox"
+                                className={styles["checkbox-input-table"]}
+                                checked={
+                                  selectedClients?.length ===
+                                    excelData?.length && excelData?.length > 0
+                                }
+                                onChange={handleViewExcelSelectAll}
+                              />
+                              Select All ({selectedClients.length})
                             </span>
-                            <button
-                              disabled={page === totalPageSize}
-                              onClick={() => {
-                                handleSearchData(page + 1);
-                              }}
-                            >
-                              Next
-                            </button>
-                          </div> */}
-                        </div>
-      
-                        <div className={styles["table-content"]}>
-                          <table>
-                            <thead>
-                              <tr>
-                                <th>
-                                  <span id={styles.selectAll}>
-                                    <input
-                                      type="checkbox"
-                                      className={styles["checkbox-input-table"]}
-                                      checked={
-                                        selectedClients?.length ===
-                                          excelData?.length && excelData?.length > 0
-                                      }
-                                      onChange={handleViewExcelSelectAll}
-                                    />
-                                    Select All ({selectedClients.length})
-                                  </span>
-                                </th>
-                                <th>SrNo</th>
-                                <th>Client Id</th>
-                                <th>Shop Name</th>
-                                <th>Client Name</th>
-                                <th>Email 1</th>
-                                <th>Email 2</th>
-                                <th>Address</th>
-                                <th>Pincode</th>
-                                <th>District</th>
-                                <th>State</th>
-                                <th>Mobile 1</th>
-                                <th>Mobile 2</th>
-                                <th>Mobile 3</th>
-                                <th>FollowUp</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(excelData || []).map((item, idx) => [
-                                <tr
-                                  style={{
-                                    backgroundColor:
-                                      item.database_status_db === "user_db"
-                                        ? "#ffe5ac"
-                                        : item.database_status_db === "client_db"
-                                        ? "#00ff2673"
-                                        : "",
-                                  }}
-                                  onClick={() => {
-                                    handleCheckboxChange(item.client_id);
-                                  }}
-                                >
-                                  <td>
-                                    <input
-                                      type="checkbox"
-                                      className={styles["checkbox-input-table"]}
-                                      checked={selectedClients.includes(
-                                        item.client_id
-                                      )}
-                                      onChange={() => {
-                                        handleCheckboxChange(item.client_id);
-                                      }}
-                                    />
-                                  </td>
-                                  <td>{idx + 1}</td>
-                                  <td>{item.client_id}</td>
-                                  <td>{item.optical_name1_db}</td>
-                                  <td>{item.client_name_db}</td>
-                                  <td>{item.email_1_db}</td>
-                                  <td>{item.email_2_db}</td>
-                                  <td>{item.address_1_db}</td>
-                                  <td>{item.pincode_db}</td>
-                                  <td>{item.district_db}</td>
-                                  <td>{item.state_db}</td>
-                                  <td>{item.mobile_1_db}</td>
-                                  <td>{item.mobile_2_db}</td>
-                                  <td>{item.mobile_3_db}</td>
-                                  <td>{item.Followup}</td>
-                                </tr>,
-                              ])}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                    <div className={styles["align-end"]} onClick={() => {}}>
-                      <button
-                        className={styles.custombtn}
-                        onClick={() => {
-                          handleRedirectClient();
-                        }}
-                      >
-                        {" "}
-                        view
-                      </button>
-                    </div>
+                          </th>
+                          <th>SrNo</th>
+                          <th>Client Id</th>
+                          <th>Shop Name</th>
+                          <th>Client Name</th>
+                          <th>Email 1</th>
+                          <th>Email 2</th>
+                          <th>Address</th>
+                          <th>Pincode</th>
+                          <th>District</th>
+                          <th>State</th>
+                          <th>Mobile 1</th>
+                          <th>Mobile 2</th>
+                          <th>Mobile 3</th>
+                          <th>FollowUp</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(excelData || []).map((item, idx) => [
+                          <tr
+                            style={{
+                              backgroundColor:
+                                item.database_status_db === "user_db"
+                                  ? "#ffe5ac"
+                                  : item.database_status_db === "client_db"
+                                  ? "#00ff2673"
+                                  : "",
+                            }}
+                            onClick={() => {
+                              handleCheckboxChange(item.client_id);
+                            }}
+                          >
+                            <td>
+                              <input
+                                type="checkbox"
+                                className={styles["checkbox-input-table"]}
+                                checked={selectedClients.includes(
+                                  item.client_id
+                                )}
+                                onChange={() => {
+                                  handleCheckboxChange(item.client_id);
+                                }}
+                              />
+                            </td>
+                            <td>{idx + 1}</td>
+                            <td>{item.client_id}</td>
+                            <td>{item.optical_name1_db}</td>
+                            <td>{item.client_name_db}</td>
+                            <td>{item.email_1_db}</td>
+                            <td>{item.email_2_db}</td>
+                            <td>{item.address_1_db}</td>
+                            <td>{item.pincode_db}</td>
+                            <td>{item.district_db}</td>
+                            <td>{item.state_db}</td>
+                            <td>{item.mobile_1_db}</td>
+                            <td>{item.mobile_2_db}</td>
+                            <td>{item.mobile_3_db}</td>
+                            <td>{item.Followup}</td>
+                          </tr>,
+                        ])}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
+              )}
+              <div className={styles["align-end"]} onClick={() => {}}>
+                <button
+                  className={styles.custombtn}
+                  onClick={() => {
+                    handleRedirectClient();
+                  }}
+                >
+                  {" "}
+                  view
+                </button>
               </div>
-            )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
